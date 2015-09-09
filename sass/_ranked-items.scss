@@ -1,0 +1,55 @@
+#rankedList {
+  position: relative;
+
+  .ranked-item {
+    position: absolute;
+    height: $itemHeight;
+    line-height: $itemHeight;
+    font-size: 18px;
+    -webkit-transition: top $itemTransitionTime, background-color $itemTransitionTime;
+    -moz-transition: top $itemTransitionTime, background-color $itemTransitionTime;
+    transition: top $itemTransitionTime, background-color $itemTransitionTime;
+
+    .item-text {
+      float: left;
+    }
+
+    .item-controls {
+      float: right;
+
+      .move-up, .move-down {
+        margin: 0 4px;
+        display: inline-block;
+        cursor: pointer;
+
+        &:hover {
+          text-shadow: $defaultTextBorder;
+        }
+      }
+
+      .move-up:hover {
+        color: $successFont;
+      }
+
+      .move-down:hover {
+        color: $dangerFont;
+      }
+    }
+  }
+}
+
+@for $i from 0 to $maxItemIndex {
+  .item-#{$i} {
+    top: $i * $itemHeight;
+    background-color: mix($bottomItemColor, $topItemColor, (100 * $i / $maxItemIndex));
+    z-index: $itemBaseZIndex + (($maxItemIndex - $i) * $itemZIndexIncrement);
+  }
+}
+
+.radio-label, .expiration-label {
+  width: 100%;
+}
+
+#listRankers {
+  resize: none;
+}

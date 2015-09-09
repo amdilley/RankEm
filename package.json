@@ -1,0 +1,47 @@
+{
+  "name": "RankEm",
+  "version": "0.0.1",
+  "description": "Communal Ranking Service",
+  "main": "js/app.js",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/amdilley/RankEm"
+  },
+  "dependencies": {
+    "body-parser": "1.13.3",
+    "classnames": "2.1.2",
+    "ejs": "~1.0.0",
+    "express": "^4.11.1",
+    "flux": "^2.0.0",
+    "keymirror": "~0.1.0",
+    "moment": "~2.9.0",
+    "node-sass": "~2.0.0",
+    "object-assign": "^1.0.0",
+    "pg": "4.x",
+    "react": "^0.12.0",
+    "serve-static": "^1.8.1",
+    "underscore": "1.7.0",
+    "uuid": "2.0.1"
+  },
+  "devDependencies": {
+    "babelify": "~6.0.2",
+    "browserify": "~6.2.0",
+    "envify": "3.0.0",
+    "react": "^0.12.0",
+    "reactify": "^0.15",
+    "uglify-js": "2.4.20",
+    "watchify": "~2.1.0"
+  },
+  "scripts": {
+    "build": "node server.js",
+    "start": "node-sass --output-style compressed ./sass/_app.scss ./public/css/app.css | browserify js/app.js | uglifyjs > public/js/bundle.min.js"
+  },
+  "author": "Aaron Dilley",
+  "browserify": {
+    "transform": [
+      "babelify",
+      "reactify",
+      "envify"
+    ]
+  }
+}

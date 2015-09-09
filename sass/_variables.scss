@@ -1,0 +1,22 @@
+$defaultTextBorder: 2px 0 0 #fff, -2px 0 0 #fff, 0 2px 0 #fff, 0 -2px 0 #fff, 1px 1px #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;
+
+$dangerFont: #a94442;
+$infoFont: #31708f;
+$successFont: #3c763d;
+
+$dangerBg: #f2dede;
+$infoBg: #d9edf7;
+$successBg: #dff0d8;
+
+$dangerBorder: #ebccd1;
+$infoBorder: #bce8f1;
+$successBorder: #d6e9c6;
+
+/* Items */
+$maxItemIndex: 19;
+$itemHeight: 60px;
+$topItemColor: #ccc;
+$bottomItemColor: #333;
+$itemBaseZIndex: 100;
+$itemZIndexIncrement: 10;
+$itemTransitionTime: 0.5s;
