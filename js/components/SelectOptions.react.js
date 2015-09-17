@@ -51,7 +51,9 @@ const SelectOptions = React.createClass({
   },
 
   _select(e) {
-    RankedListActions.select(e.target.value);
+    var optionValues = $(e.target).val();
+
+    RankedListActions.select(optionValues);
   }
 });
 

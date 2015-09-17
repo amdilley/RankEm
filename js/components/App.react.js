@@ -1,8 +1,9 @@
 const React = require('react');
 
 // nested components
-const RankedList = require('./RankedList.react');
+const MakeSelection = require('./MakeSelection.react');
 const NewListForm = require('./NewListForm.react');
+const RankedList = require('./RankedList.react');
 
 // stores
 const AppStore = require('../stores/AppStore');
@@ -14,6 +15,13 @@ function getComponentByRoute() {
     case /\/create\/list/.test(_path):
       return (
           <NewListForm />
+        );
+
+    case /\/make-selection\/[a-f\d\-]+/.test(_path):
+      let alias = _path.match(/\/make-selection\/([a-f\d\-]+)/)[1];
+
+      return (
+          <MakeSelection alias={ alias } />
         );
 
     case /\/list\/[a-f\d\-]+/.test(_path):

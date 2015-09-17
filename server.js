@@ -55,6 +55,13 @@ app.get('/db/options/:categoryId', function (req, res) {
   });
 });
 
+// get list of cateogry options to choose from
+app.get('/db/category-options/:alias', function (req, res) {
+  db.getCategoryItemsByListId(req.params.alias, function (queryResult) {
+    res.json(queryResult);
+  });
+});
+
 // create new list
 app.post('/db/list', function (req, res) {
   var days    = req.body.days || DEFAULT_OFFSET_DAYS;
@@ -90,7 +97,7 @@ app.post('/db/list', function (req, res) {
 
 // submit category option selection
 app.post('/db/select', function (req, res) {
-  db.submitSelection(req.body.listId, req.body.options, function () {
+  db.submitSelection(req.body.alias, req.body.options, function () {
     res.json({
       result: 'selection submitted'
     });

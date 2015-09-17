@@ -94,6 +94,34 @@ Database.prototype = {
   },
 
   /**
+   * Retrieve category items for a given list category.
+   * @param {string} listId ID of alias in list row in databse
+   * @param {function} callback to be executed on query completion
+   */
+  getCategoryItemsByListId: function (listId, callback) {
+    var listQuery = 'SELECT l.categoryId, l.message, l.itemsPerRanker FROM lists l ' +
+                    'WHERE l.id = $1 ' +
+                    'OR l.aliases LIKE $2';
+
+    var _this = this;
+
+    _this.runQuery(listQuery, [listId, '%' + listId + '%'], function (lResult) {
+      if (lResult && lResult.rows) {
+        var list = lResult.rows[0];
+        var categoryId = list.categoryid;
+        var listPrompt = list.message;
+        var numChoices = list.itemsperranker;
+
+        callback({
+          categoryId: categoryId,
+          listPrompt: listPrompt,
+          numChoices: numChoices
+        });
+      }
+    }, 'error retrieving list');
+  },
+
+  /**
    * Retrieve categories.
    * @param {function} callback to be executed on query completion
    * @return {array} category list
@@ -162,18 +190,21 @@ Database.prototype = {
 
     this.runQuery(listQuery, [listId, aliases, categoryId, message, expiration, rankers, itemsPerRanker, ''], function () {
       callback();
-    });
+    }, 'error creating list');
   },
 
   /**
    * Submit category option(s)
-   * @param {string} listId ID of list row in databse
-   * @param {array} options selected option(s)
+   * @param {string} alias ID of list row in databse
+   * @param {string} options comma separated list of selected option(s)
    * @param {function} callback to be executed on query completion
    */
   submitSelection: function (alias, options, callback) {
-    var listQuery = 'SELECT l.id, l.aliases, l.items FROM lists l ' +
-                    'WHERE l.aliases LIKE $1';
+    var listQuery   = 'SELECT l.id, l.aliases, l.items FROM lists l ' +
+                      'WHERE l.aliases LIKE $1';
+    var updateQuery = 'UPDATE lists ' +
+                      'SET aliases = $1, items = $2 ' +
+                      'WHERE id = $3'; 
 
     var _this = this;
 
@@ -182,11 +213,29 @@ Database.prototype = {
         var list = lResult.rows[0];
         var listId = list.id;
         var aliases = list.aliases.split(',');
-        var items = list.items.split(',');
+        var items = list.items ? list.items.split(',') : [];
 
-        // TODO: update aliases to remove given alias, update items to include unique selections
+        var remainingAliases = aliases.filter(function (id) {
+          return id !== alias;
+        }).join(',');
+
+        options = options.split(',');
+
+        for (var i = 0, l = options.length; i < l; i++) {
+          if (items.indexOf(options[i]) === -1) {
+            items.push(options[i]);
+          }
+        }
+
+        _this.runQuery(updateQuery, [remainingAliases, items.join(','), listId], function (uResult) {
+          if (remainingAliases === '') {
+            // TODO: alert rankers with rankable list link
+          }
+
+          callback();
+        }, 'error updating list');
       }
-    });
+    }, 'error retireving list');
   },
 
   /**

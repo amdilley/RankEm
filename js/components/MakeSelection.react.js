@@ -7,23 +7,44 @@ const SelectOptions = require('./SelectOptions.react');
 // stores
 const RankedListStore = require('../stores/RankedListStore');
 
-const SubmitOptions = React.createClass({
+const cx = require('classnames');
+
+const MakeSelection = React.createClass({
   propTypes: {
-    listId: ReactPropTypes.string
+    alias: ReactPropTypes.string
   },
 
   getInitialState() {
     return {
-      listPrompt: '',
       categoryId: '',
+      isHidden: true,
+      listPrompt: '',
       numChoices: 1,
-      options: []
+      selectedOptions: [],
+      renderedOptions: null
     };
   },
 
   componentDidMount() {
     RankedListStore.addChangeListener(() => {
       this._updateSelection();
+    });
+
+    $.get('/db/category-options/' + this.props.alias, (data) => {
+      var renderedOptions = (
+          <SelectOptions
+            id="categoryOption"
+            numChoices={ +data.numChoices }
+            path={  '/db/options/' + data.categoryId } />
+        );
+
+      this.setState({
+        categoryId: data.categoryId,
+        isHidden: false,
+        listPrompt: data.listPrompt,
+        numChoices: data.numChoices,
+        renderedOptions: renderedOptions
+      });
     });
   },
 
@@ -34,15 +55,18 @@ const SubmitOptions = React.createClass({
   },
 
   render() {
+    let classes = cx({
+      "hidden": this.state.isHidden
+    });
+
     return (
-        <form>
-          <h2>{ this.state.listPrompt }</h2>
+        <form className={ classes } >
+          <h2>
+            { this.state.listPrompt }
+            <small> Select { this.state.numChoices }</small>
+          </h2>
           <div className="form-group">
-            <label htmlFor="categoryOption">Option</label>
-            <CategoryOptions
-              id="categoryOption"
-              numChoices={ this.state.numChoices }
-              path={  '/db/options/' + this.state.categoryId } />
+            { this.state.renderedOptions }
           </div>
           <div className="form-group">
             <div className="col-sm-10">
@@ -60,8 +84,8 @@ const SubmitOptions = React.createClass({
     e.preventDefault();
 
     let data = {
-      listId: this.props.listId,
-      options: this.state.options,
+      alias: this.props.alias,
+      options: this.state.selectedOptions.join(','), // easier to send as string then parse on server
     };
 
     if (this._validateForm()) {
@@ -81,7 +105,7 @@ const SubmitOptions = React.createClass({
 
   _updateSelection() {
     this.setState({
-      options: RankedListStore.getOptions()
+      selectedOptions: RankedListStore.getOptions()
     });
   },
 
@@ -90,8 +114,8 @@ const SubmitOptions = React.createClass({
   },
 
   _validateSelection() {
-    return this.state.options.length <= this.state.numChoices;
+    return this.state.selectedOptions.length <= this.state.numChoices;
   }
 });
 
-module.exports = SubmitOptions;
+module.exports = MakeSelection;
