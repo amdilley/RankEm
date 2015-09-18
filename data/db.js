@@ -55,36 +55,33 @@ Database.prototype = {
    * @return {object} list items and relevant metadata
    */
   getListItemsById: function (listId, callback) {
-    var listQuery = 'SELECT l.id, l.categoryId, l.message, l.itemsPerRanker, l.items FROM lists l ' +
+    console.log(listId);
+    var listQuery = 'SELECT l.message, l.items FROM lists l ' +
                     'WHERE l.id = $1 ' +
-                    'OR l.aliases LIKE $2';
+                    'AND l.aliases = $2';
 
     var _this = this;
 
-    _this.runQuery(listQuery, [listId, '%' + listId + '%'], function (lResult) {
+    _this.runQuery(listQuery, [listId, ''], function (lResult) {
       if (lResult && lResult.rows) {
         var list = lResult.rows[0];
         var itemIds = list.items.split(',');
         var formattedIds = itemIds.map(function (itemId) {
-                             return 'o.id = ' + itemId;
+                             // double quotes used for string concatenation since
+                             // postgresql requires single quotes to wrap text
+                             return "o.id = '" + itemId + "'"; 
                            });
 
         var itemsQuery = 'SELECT o.id, o.name FROM category_options o ' +
-                         'WHERE o.categoryId = $1 ' +
-                         'ORDER BY o.name';
+                         'WHERE ' + formattedIds.join(' OR ') + ' ' +
+                         'ORDER BY RANDOM()';
 
-        if (list.items !== '') {
-          itemsQuery = 'SELECT o.id, o.name FROM category_options o ' +
-                       'WHERE ' + formattedIds.join(' OR ') +
-                       'ORDER BY RANDOM()';
-        }
+        console.log(itemsQuery);
 
-        _this.runQuery(itemsQuery, [list.categoryid], function (iResult) {
+        _this.runQuery(itemsQuery, [], function (iResult) {
           if (iResult && iResult.rows) {
             callback({
-              listId: list.id,
               message: list.message,
-              itemsPerRanker: +list.itemsperranker,
               items: iResult.rows
             });
           }

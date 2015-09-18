@@ -29,6 +29,7 @@ const RankedList = React.createClass({
 
   getInitialState() {
     return {
+      listPrompt: '',
       items: []
     };
   },
@@ -51,14 +52,26 @@ const RankedList = React.createClass({
 
   render() {
     return (
-        <div id="rankedList" className="row">
-          { this.state.items }
+        <div>
+          <h2>{ this.state.listPrompt }</h2>
+          <div id="rankedList" className="row">
+            { this.state.items }
+          </div>
+          <div className="form-group">
+            <div className="col-sm-10">
+              <button
+                className="btn btn-default"
+                onClick={ this._submit } >Submit
+              </button>
+            </div>
+          </div>
         </div>
       );
   },
 
   _updateList() {
     this.setState({
+      listPrompt: RankedListStore.getListMessage(),
       items: renderItems()
     });
   }
