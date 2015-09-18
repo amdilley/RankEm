@@ -55,7 +55,6 @@ Database.prototype = {
    * @return {object} list items and relevant metadata
    */
   getListItemsById: function (listId, callback) {
-    console.log(listId);
     var listQuery = 'SELECT l.message, l.items FROM lists l ' +
                     'WHERE l.id = $1 ' +
                     'AND l.aliases = $2';
@@ -75,8 +74,6 @@ Database.prototype = {
         var itemsQuery = 'SELECT o.id, o.name FROM category_options o ' +
                          'WHERE ' + formattedIds.join(' OR ') + ' ' +
                          'ORDER BY RANDOM()';
-
-        console.log(itemsQuery);
 
         _this.runQuery(itemsQuery, [], function (iResult) {
           if (iResult && iResult.rows) {
