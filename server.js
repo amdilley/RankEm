@@ -5,7 +5,7 @@ var app = express();
 
 var moment = require('moment');
 
-var Database = require('./data/db');
+var Database = require('./util/db');
 var db = new Database();
 
 var port = process.env.PORT || 3000;
@@ -76,11 +76,7 @@ app.post('/db/list', function (req, res) {
                       .add(minutes, 'minutes');
 
   var rankers = req.body.rankers;
-  var aliases = (new Array(rankers.length)).join(',').split(',').map(function () {
-    return db.generateUUID();
-  });
-
-  // TODO: message rankers
+  var aliases = db.generateAliases(rankers.length);
 
   db.createList(
     aliases.join(','),

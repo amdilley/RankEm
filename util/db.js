@@ -1,6 +1,13 @@
 var pg = require('pg');
 var uuid = require('uuid');
 
+var Twilio = require('./util/twilio');
+var twilio = new Twilio();
+
+var BASE_ROOT = 'http://localhost:3000/#/';
+var SELECTION_ENDPOINT = BASE_ROOT + 'make-selection/';
+var RANKING_ENDPOINT = BASE_ROOT + 'list/';
+
 /**
  * Randomize array element order in-place
  * Using Fisher-Yates shuffle algorithm.
@@ -55,13 +62,15 @@ Database.prototype = {
    * @return {object} list items and relevant metadata
    */
   getListItemsById: function (listId, callback) {
+    // TODO: verify this works as intended with aliases.
+    // List ranking should not be accesible until all selections are cast
     var listQuery = 'SELECT l.message, l.items FROM lists l ' +
                     'WHERE l.id = $1 ' +
-                    'AND l.aliases = $2';
+                    'OR l.aliases LIKE $2';
 
     var _this = this;
 
-    _this.runQuery(listQuery, [listId, ''], function (lResult) {
+    _this.runQuery(listQuery, [listId, '%' + listId + '%'], function (lResult) {
       if (lResult && lResult.rows) {
         var list = lResult.rows[0];
         var itemIds = list.items.split(',');
@@ -183,6 +192,13 @@ Database.prototype = {
     var listId = this.generateUUID();
 
     this.runQuery(listQuery, [listId, aliases, categoryId, message, expiration, rankers, itemsPerRanker, ''], function () {
+      // send links to rankers
+      var rankersList = rankers.split(',');
+
+      for (var i = 0, l = rankersList.length; i < l; i++) {
+        twilio.send([rankersList[i]], message + ': ' + SELECTION_ENDPOINT + aliases[i]);
+      }
+
       callback();
     }, 'error creating list');
   },
@@ -194,11 +210,14 @@ Database.prototype = {
    * @param {function} callback to be executed on query completion
    */
   submitSelection: function (alias, options, callback) {
-    var listQuery   = 'SELECT l.id, l.aliases, l.items FROM lists l ' +
+    var listQuery   = 'SELECT l.id, l.aliases, l.rankers, l.items FROM lists l ' +
                       'WHERE l.aliases LIKE $1';
     var updateQuery = 'UPDATE lists ' +
                       'SET aliases = $1, items = $2 ' +
-                      'WHERE id = $3'; 
+                      'WHERE id = $3';
+    var aliasQuery  = 'UPDATE lists ' +
+                      'SET aliases = $1 ' +
+                      'WHERE id = $2';
 
     var _this = this;
 
@@ -206,6 +225,7 @@ Database.prototype = {
       if (lResult && lResult.rows) {
         var list = lResult.rows[0];
         var listId = list.id;
+        var rankers = list.rankers;
         var aliases = list.aliases.split(',');
         var items = list.items ? list.items.split(',') : [];
 
@@ -224,12 +244,31 @@ Database.prototype = {
         _this.runQuery(updateQuery, [remainingAliases, items.join(','), listId], function (uResult) {
           if (remainingAliases === '') {
             // TODO: alert rankers with rankable list link
-          }
+            var numRankers = rankers.length;
+            var newAliases = _this.generateAliases(numRankers);
 
-          callback();
+            _this.runQuery(aliasQuery, [newAliases.join(','), listId], function (aResult) {
+              for (var i = 0, l = numRankers; i < l; i++) {
+                twilio.send([rankers[i]], 'Rank Em here: ' + RANKING_ENDPOINT + aliases[i]);
+              }
+
+              callback();
+            }, 'error sending out texts to rankers');
+          }
         }, 'error updating list');
       }
     }, 'error retireving list');
+  },
+
+  /**
+   * Generates a list of alias UUIDs
+   * @param {number} number number of alias IDs needed
+   * @return {array} list of generated UUIDs
+   */
+  generateAliases: function (number) {
+    return (new Array(number)).join(',').split(',').map((function () {
+        return this.generateUUID();
+      }).bind(this));
   },
 
   /**

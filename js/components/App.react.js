@@ -10,22 +10,27 @@ const AppStore = require('../stores/AppStore');
 
 const _path = window.location.hash.match(/#(.+)/)[1];
 
+// route regexes
+const CREATE_LIST_REGEX = /\/create\/list/;
+const MAKE_SELECTION_REGEX = /\/make-selection\/([a-f\d\-]+)/;
+const RANK_LIST_REGEX = /\/list\/([a-f\d\-]+)/;
+
 function getComponentByRoute() {
   switch (true) {
-    case /\/create\/list/.test(_path):
+    case CREATE_LIST_REGEX.test(_path):
       return (
           <NewListForm />
         );
 
-    case /\/make-selection\/[a-f\d\-]+/.test(_path):
-      let alias = _path.match(/\/make-selection\/([a-f\d\-]+)/)[1];
+    case MAKE_SELECTION_REGEX.test(_path):
+      let alias = _path.match(MAKE_SELECTION_REGEX)[1];
 
       return (
           <MakeSelection alias={ alias } />
         );
 
-    case /\/list\/[a-f\d\-]+/.test(_path):
-      let listId = _path.match(/\/list\/([a-f\d\-]+)/)[1];
+    case RANK_LIST_REGEX.test(_path):
+      let listId = _path.match(RANK_LIST_REGEX)[1];
       
       return (
           <RankedList listId={ listId } />
