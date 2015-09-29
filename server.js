@@ -76,7 +76,7 @@ app.post('/db/list', function (req, res) {
                       .add(minutes, 'minutes');
 
   var rankers = req.body.rankers;
-  var aliases = db.generateAliases(rankers.length);
+  var aliases = db.generateAliases(rankers.split(',').length);
 
   db.createList(
     aliases.join(','),

@@ -1,12 +1,12 @@
 var pg = require('pg');
 var uuid = require('uuid');
 
-var Twilio = require('./util/twilio');
+var Twilio = require('./twilio');
 var twilio = new Twilio();
 
-var BASE_ROOT = 'http://localhost:3000/#/';
-var SELECTION_ENDPOINT = BASE_ROOT + 'make-selection/';
-var RANKING_ENDPOINT = BASE_ROOT + 'list/';
+var BASE_ROOT = 'http://localhost:3000/#';
+var SELECTION_ENDPOINT = BASE_ROOT + '/make-selection/';
+var RANKING_ENDPOINT = BASE_ROOT + '/list/';
 
 /**
  * Randomize array element order in-place
@@ -194,9 +194,10 @@ Database.prototype = {
     this.runQuery(listQuery, [listId, aliases, categoryId, message, expiration, rankers, itemsPerRanker, ''], function () {
       // send links to rankers
       var rankersList = rankers.split(',');
+      var aliasList = aliases.split(',');
 
       for (var i = 0, l = rankersList.length; i < l; i++) {
-        twilio.send([rankersList[i]], message + ': ' + SELECTION_ENDPOINT + aliases[i]);
+        twilio.send([rankersList[i]], message + ': ' + SELECTION_ENDPOINT + aliasList[i]);
       }
 
       callback();

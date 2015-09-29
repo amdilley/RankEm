@@ -178,6 +178,8 @@ const NewListForm = React.createClass({
   _submit(e) {
     e.preventDefault();
 
+    this._updateCategory();
+
     let data = {
       categoryId: this.state.listCategory,
       message: this.state.listPrompt,
@@ -205,7 +207,7 @@ const NewListForm = React.createClass({
 
   _updateCategory() {
     this.setState({
-      listCategory: RankedListStore.getOptions()[0]
+      listCategory: RankedListStore.getOptions()
     });
   },
 
