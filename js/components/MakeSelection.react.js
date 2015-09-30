@@ -56,7 +56,7 @@ const MakeSelection = React.createClass({
 
   render() {
     let classes = cx({
-      "hidden": this.state.isHidden
+      'hidden': this.state.isHidden
     });
 
     return (

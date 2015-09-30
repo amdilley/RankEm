@@ -7,23 +7,32 @@ const RankedListActions = require('../actions/RankedListActions');
 // stores
 const RankedListStores = require('../stores/RankedListStore');
 
+const cx = require('classnames');
+
 const RankedItem = React.createClass({
   propTypes: {
     initialPosition: ReactPropTypes.number,
     itemId: ReactPropTypes.string,
-    text: ReactPropTypes.string
+    text: ReactPropTypes.string,
+    totalItems: ReactPropTypes.number
   },
 
   getInitialState() {
     return {
-      position: this.props.initialPosition
+      position: this.props.initialPosition,
+      isFirstItem: this.props.initialPosition === 0,
+      isLastItem: this.props.initialPosition === this.props.totalItems - 1
     };
   },
 
   componentDidMount() {
     RankedListStores.addMoveListener(() => {
+      let position = RankedListStores.getPositionByItemId(this.props.itemId);
+
       this.setState({
-        position: RankedListStores.getPositionByItemId(this.props.itemId)
+        position: position,
+        isFirstItem: position === 0,
+        isLastItem: position === this.props.totalItems - 1
       });
     });
   },
@@ -36,15 +45,27 @@ const RankedItem = React.createClass({
 
   render() {
     let classes = [ 'ranked-item', 'col-xs-12', 'item-' + this.state.position ];
+    let upClasses = cx({
+      'move-up': true,
+      'fa': true,
+      'fa-chevron-up': true,
+      'disabled': this.state.isFirstItem
+    });
+    let downClasses = cx({
+      'move-down': true,
+      'fa': true,
+      'fa-chevron-down': true,
+      'disabled': this.state.isLastItem
+    });
 
     return (
         <div className={ classes.join(' ') }>
           <div className="item-text">{ this.props.text }</div>
           <div className="item-controls">
-            <div className="move-up fa fa-chevron-up"
+            <div className={ upClasses }
               onClick={ this._moveUp }>
             </div>
-            <div className="move-down fa fa-chevron-down"
+            <div className={ downClasses }
               onClick={ this._moveDown }>
             </div>
           </div>
@@ -53,11 +74,15 @@ const RankedItem = React.createClass({
   },
 
   _moveDown() {
-    RankedListActions.moveDown(this.state.position);
+    if (!this.state.isLastItem) {
+      RankedListActions.moveDown(this.state.position);
+    }
   },
 
   _moveUp() {
-    RankedListActions.moveUp(this.state.position);
+    if (!this.state.isFirstItem) {
+      RankedListActions.moveUp(this.state.position);
+    }
   }
 });
 

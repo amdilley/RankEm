@@ -10,13 +10,14 @@ const RankedListActions = require('../actions/RankedListActions');
 // stores
 const RankedListStore = require('../stores/RankedListStore');
 
-function renderItems() {
-  return RankedListStore.getRankedList().map((item, i) => {
+function renderItems(items) {
+  return items.map((item, i) => {
     return (
         <RankedItem 
           text={ item.name }
           itemId={ item.id }
           initialPosition={ i }
+          totalItems={ items.length }
           key={ i } />
       );
   });
@@ -54,10 +55,7 @@ const RankedList = React.createClass({
     return (
         <div>
           <h2>{ this.state.listPrompt }</h2>
-          <div id="rankedList" className="row">
-            { this.state.items }
-          </div>
-          <div className="form-group">
+          <div className="form-group submit-ranking">
             <div className="col-sm-10">
               <button
                 className="btn btn-default"
@@ -65,14 +63,23 @@ const RankedList = React.createClass({
               </button>
             </div>
           </div>
+          <div id="rankedList" className="row">
+            { this.state.items }
+          </div>
         </div>
       );
+  },
+
+  _submit(e) {
+    e.preventDefault();
+
+    // TODO: add submit ranking handler
   },
 
   _updateList() {
     this.setState({
       listPrompt: RankedListStore.getListMessage(),
-      items: renderItems()
+      items: renderItems(RankedListStore.getRankedList())
     });
   }
 });

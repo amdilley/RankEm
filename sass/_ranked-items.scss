@@ -1,3 +1,9 @@
+.submit-ranking.form-group {
+  position: fixed;
+  top: $topHeaderMargin;
+  right: 0;
+}
+
 #rankedList {
   position: relative;
 
@@ -22,16 +28,21 @@
         display: inline-block;
         cursor: pointer;
 
-        &:hover {
+        &.disabled {
+          opacity: $disabledOpacity;
+          cursor: not-allowed;
+        }
+
+        &:not(.disabled):hover {
           text-shadow: $defaultTextBorder;
         }
       }
 
-      .move-up:hover {
+      .move-up:not(.disabled):hover {
         color: $successFont;
       }
 
-      .move-down:hover {
+      .move-down:not(.disabled):hover {
         color: $dangerFont;
       }
     }

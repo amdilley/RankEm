@@ -226,7 +226,7 @@ Database.prototype = {
       if (lResult && lResult.rows) {
         var list = lResult.rows[0];
         var listId = list.id;
-        var rankers = list.rankers;
+        var rankers = list.rankers.split(',');
         var aliases = list.aliases.split(',');
         var items = list.items ? list.items.split(',') : [];
 
@@ -250,7 +250,7 @@ Database.prototype = {
 
             _this.runQuery(aliasQuery, [newAliases.join(','), listId], function (aResult) {
               for (var i = 0, l = numRankers; i < l; i++) {
-                twilio.send([rankers[i]], 'Rank Em here: ' + RANKING_ENDPOINT + aliases[i]);
+                twilio.send([rankers[i]], 'Rank Em here: ' + RANKING_ENDPOINT + newAliases[i]);
               }
 
               callback();
