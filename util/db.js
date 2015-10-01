@@ -11,7 +11,6 @@ var RANKING_ENDPOINT = BASE_ROOT + '/list/';
 /**
  * Randomize array element order in-place
  * Using Fisher-Yates shuffle algorithm.
- * @param {array} arr array entries to be shuffled
  * @return {array} shuffled array
  */
 Array.prototype.shuffle = function () {
@@ -21,7 +20,21 @@ Array.prototype.shuffle = function () {
     this[i] = this[j];
     this[j] = temp;
   }
-}
+};
+
+/**
+ * Remove first instance of value from array.
+ * @param value value to be removed
+ * @return filtered array
+ */
+Array.prototype.removeVal = function (value) {
+  for (var i = 0, l = this.length; i < l; i++) {
+    if (this[i] === value) {
+      this.splice(i, 1);
+      return this;
+    }
+  }
+};
 
 var Database = function () {
   this._endpoint = process.env.DATABASE_URL || 'postgres://amdilley@localhost/RankEm';
@@ -59,7 +72,6 @@ Database.prototype = {
    * Retrieve list items.
    * @param {string} listId ID of list row in databse
    * @param {function} callback to be executed on query completion
-   * @return {object} list items and relevant metadata
    */
   getListItemsById: function (listId, callback) {
     // TODO: verify this works as intended with aliases.
@@ -73,7 +85,7 @@ Database.prototype = {
     _this.runQuery(listQuery, [listId, '%' + listId + '%'], function (lResult) {
       if (lResult && lResult.rows) {
         var list = lResult.rows[0];
-        var itemIds = list.items.split(',');
+        var itemIds = Object.keys(JSON.parse(list.items));
         var formattedIds = itemIds.map(function (itemId) {
                              // double quotes used for string concatenation since
                              // postgresql requires single quotes to wrap text
@@ -91,7 +103,7 @@ Database.prototype = {
               items: iResult.rows
             });
           }
-        }, 'error retireving items');
+        }, 'error retrieving items');
       }
     }, 'error retrieving list');
   },
@@ -228,21 +240,17 @@ Database.prototype = {
         var listId = list.id;
         var rankers = list.rankers.split(',');
         var aliases = list.aliases.split(',');
-        var items = list.items ? list.items.split(',') : [];
+        var items = list.items ? JSON.parse(list.items) : {};
 
-        var remainingAliases = aliases.filter(function (id) {
-          return id !== alias;
-        }).join(',');
+        var remainingAliases = aliases.removeVal(alias).join(',');
 
         options = options.split(',');
 
         for (var i = 0, l = options.length; i < l; i++) {
-          if (items.indexOf(options[i]) === -1) {
-            items.push(options[i]);
-          }
+          items[options[i]] = 0;
         }
 
-        _this.runQuery(updateQuery, [remainingAliases, items.join(','), listId], function (uResult) {
+        _this.runQuery(updateQuery, [remainingAliases, JSON.stringify(items), listId], function (uResult) {
           if (remainingAliases === '') {
             // TODO: alert rankers with rankable list link
             var numRankers = rankers.length;
@@ -258,7 +266,53 @@ Database.prototype = {
           }
         }, 'error updating list');
       }
-    }, 'error retireving list');
+    }, 'error retrieving list');
+  },
+
+  /**
+   * Submit list ranking
+   * @param {string} alias ID of list row in databse
+   * @param {string} ranking hashmap
+   * @param {function} callback to be executed on query completion
+   */
+  submitRanking: function (alias, ranking, callback) {
+    var listQuery   = 'SELECT l.id, l.aliases, l.rankers, l.items FROM lists l ' +
+                      'WHERE l.aliases LIKE $1';
+    var updateQuery = 'UPDATE lists ' +
+                      'SET aliases = $1, items = $2 ' +
+                      'WHERE id = $3';
+
+    var _this = this;
+
+    _this.runQuery(listQuery, [alias], function (lResult) {
+      if (lResult && lResult.rows) {
+        var list = lResult.rows[0];
+        var listId = list.id;
+        var aliases = list.aliases.split(',');
+        var rankers = list.rankers.split(',');
+        var items = JSON.parse(list.items);
+
+        var remainingAliases = aliases.removeVal(alias).join(',');
+
+        ranking = JSON.parse(ranking);
+        
+        for (var itemId in ranking) {
+          items[itemId] += ranking[itemId];
+        }
+        
+        _this.runQuery(updateQuery, [remainingAliases, JSON.stringify(items), listId], function (uResult) {
+          if (remainingAliases === '') {
+            var numRankers = rankers.length;
+
+            for (var i = 0, l = numRankers; i < l; i++) {
+              twilio.send([rankers[i]], 'See results: ' + RANKING_ENDPOINT + listId);
+            }
+          }
+
+          callback();
+        }, 'error updating list');
+      }
+    }, 'error retrieving list');
   },
 
   /**

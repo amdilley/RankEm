@@ -100,6 +100,14 @@ app.post('/db/select', function (req, res) {
   });
 });
 
+// submit final ranking
+app.post('/db/rank', function (req, res) {
+  db.submitRanking(req.body.alias, req.body.ranking, function () {
+    res.json({
+      result: 'ranking submitted'
+    });
+  });
+});
 
 // create new category
 app.post('/db/category', function (req, res) {

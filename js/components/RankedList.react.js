@@ -70,10 +70,40 @@ const RankedList = React.createClass({
       );
   },
 
+  /**
+   * Builds ranking object from rendered items
+   * @return {object} hashmap with item IDs and their submitted rank
+   */
+  _parseItemPositions() {
+    let parsedItemPositions = {};
+
+    for (let item of this.state.items) {
+      let itemId = item.props.itemId;
+      parsedItemPositions[itemId] = RankedListStore.getPositionByItemId(itemId);
+    }
+
+    return parsedItemPositions;
+  },
+
   _submit(e) {
     e.preventDefault();
-
-    // TODO: add submit ranking handler
+    
+    let data = {
+      alias: this.props.listId,
+      ranking: JSON.stringify(this._parseItemPositions()) // easier to send object as text
+    };
+    
+    $.ajax({
+      type: 'POST',
+      url: '/db/rank',
+      data: data,
+      success(result) {
+        console.log(result);
+      },
+      error(xhr, err, text) {
+        console.log(xhr, err, text);
+      }
+    });
   },
 
   _updateList() {
