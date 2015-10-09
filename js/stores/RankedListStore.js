@@ -12,6 +12,7 @@ const MOVE_EVENT = 'move';
 let _listMessage = '';
 let _rankedList = [];
 let _selectOptions = [];
+let _isRankable = true;
 
 const RankedListStore = assign({}, EventEmitter.prototype, {
   /**
@@ -83,6 +84,17 @@ const RankedListStore = assign({}, EventEmitter.prototype, {
     _rankedList = list;
   },
 
+  getRankingState() {
+    return _isRankable;
+  },
+
+  /**
+   * @param {array} list array of list items
+   */
+  setRankingState(state) {
+    _isRankable = state;
+  },
+
   /**
    * @param {function} callback
    */
@@ -132,6 +144,7 @@ AppDispatcher.register(payload => {
     case RankedListConstants.UPDATE:
       RankedListStore.setListMessage(action.listMessage);
       RankedListStore.setRankedList(action.items);
+      RankedListStore.setRankingState(action.isRankable);
       RankedListStore.emitChange();
       break;
 

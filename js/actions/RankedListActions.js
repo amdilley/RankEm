@@ -39,6 +39,7 @@ const RankedListActions = {
     AppDispatcher.handleViewAction({
       listMessage: listData.message,
       items: listData.items,
+      isRankable: listData.isRankable,
       actionType: RankedListConstants.UPDATE
     });
   },

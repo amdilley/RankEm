@@ -2,6 +2,7 @@
   position: fixed;
   top: $topHeaderMargin;
   right: 0;
+  display: none;
 }
 
 #rankedList {
@@ -21,30 +22,40 @@
     }
 
     .item-controls {
-      float: right;
+      display: none;
+    }
+  }
+}
 
-      .move-up, .move-down {
-        margin: 0 4px;
-        display: inline-block;
-        cursor: pointer;
+.rankable {
+  .item-controls, .submit-ranking.form-group {
+    display: block;
+  }
 
-        &.disabled {
-          opacity: $disabledOpacity;
-          cursor: not-allowed;
-        }
+  .item-controls {
+    float: right;
 
-        &:not(.disabled):hover {
-          text-shadow: $defaultTextBorder;
-        }
+    .move-up, .move-down {
+      margin: 0 4px;
+      display: inline-block;
+      cursor: pointer;
+
+      &.disabled {
+        opacity: $disabledOpacity;
+        cursor: not-allowed;
       }
 
-      .move-up:not(.disabled):hover {
-        color: $successFont;
+      &:not(.disabled):hover {
+        text-shadow: $defaultTextBorder;
       }
+    }
 
-      .move-down:not(.disabled):hover {
-        color: $dangerFont;
-      }
+    .move-up:not(.disabled):hover {
+      color: $successFont;
+    }
+
+    .move-down:not(.disabled):hover {
+      color: $dangerFont;
     }
   }
 }

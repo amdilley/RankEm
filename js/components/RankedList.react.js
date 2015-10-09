@@ -10,6 +10,8 @@ const RankedListActions = require('../actions/RankedListActions');
 // stores
 const RankedListStore = require('../stores/RankedListStore');
 
+const cx = require('classnames');
+
 function renderItems(items) {
   return items.map((item, i) => {
     return (
@@ -31,7 +33,8 @@ const RankedList = React.createClass({
   getInitialState() {
     return {
       listPrompt: '',
-      items: []
+      items: [],
+      isRankable: true
     };
   },
 
@@ -52,8 +55,12 @@ const RankedList = React.createClass({
   },
 
   render() {
+    var classes = cx({
+      'rankable': this.state.isRankable
+    });
+
     return (
-        <div>
+        <div className={ classes }>
           <h2>{ this.state.listPrompt }</h2>
           <div className="form-group submit-ranking">
             <div className="col-sm-10">
@@ -109,7 +116,8 @@ const RankedList = React.createClass({
   _updateList() {
     this.setState({
       listPrompt: RankedListStore.getListMessage(),
-      items: renderItems(RankedListStore.getRankedList())
+      items: renderItems(RankedListStore.getRankedList()),
+      isRankable: RankedListStore.getRankingState()
     });
   }
 });

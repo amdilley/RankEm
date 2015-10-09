@@ -50,6 +50,7 @@ Database.prototype = {
    */
   runQuery: function (query, queryData, callback, errorMessage) {
     var client = new pg.Client(this._endpoint);
+    var isSelectQuery = /^SELECT/.test(query);
 
     client.connect(function (err) {
       if (err) {
@@ -61,7 +62,12 @@ Database.prototype = {
           return console.error(errorMessage, err);
         }
 
-        callback(result);
+        // UPDATE and INSERT queries won't return rows
+        if (!isSelectQuery || (result && result.rows)) {
+          callback(result);
+        } else {
+          return console.error("No results found");
+        }
 
         client.end();
       });
@@ -74,37 +80,42 @@ Database.prototype = {
    * @param {function} callback to be executed on query completion
    */
   getListItemsById: function (listId, callback) {
-    // TODO: verify this works as intended with aliases.
     // List ranking should not be accesible until all selections are cast
-    var listQuery = 'SELECT l.message, l.items FROM lists l ' +
+    var listQuery = 'SELECT l.aliases, l.message, l.items FROM lists l ' +
                     'WHERE l.id = $1 ' +
                     'OR l.aliases LIKE $2';
 
     var _this = this;
 
     _this.runQuery(listQuery, [listId, '%' + listId + '%'], function (lResult) {
-      if (lResult && lResult.rows) {
-        var list = lResult.rows[0];
-        var itemIds = Object.keys(JSON.parse(list.items));
-        var formattedIds = itemIds.map(function (itemId) {
-                             // double quotes used for string concatenation since
-                             // postgresql requires single quotes to wrap text
-                             return "o.id = '" + itemId + "'"; 
-                           });
+      var list = lResult.rows[0];
+      var aliases = list.aliases;
+      var isRankable = aliases !== '';
+      var itemsObj = JSON.parse(list.items);
+      var itemIds = Object.keys(itemsObj);
+      var formattedIds = itemIds.map(function (itemId) {
+                           // double quotes used for string concatenation since
+                           // postgresql requires single quotes to wrap text
+                           return "o.id = '" + itemId + "'"; 
+                         });
 
-        var itemsQuery = 'SELECT o.id, o.name FROM category_options o ' +
-                         'WHERE ' + formattedIds.join(' OR ') + ' ' +
-                         'ORDER BY RANDOM()';
+      var itemsQuery = 'SELECT o.id, o.name FROM category_options o ' +
+                       'WHERE ' + formattedIds.join(' OR ') + ' ' +
+                       'ORDER BY RANDOM()';
 
-        _this.runQuery(itemsQuery, [], function (iResult) {
-          if (iResult && iResult.rows) {
-            callback({
-              message: list.message,
-              items: iResult.rows
-            });
-          }
-        }, 'error retrieving items');
-      }
+      _this.runQuery(itemsQuery, [], function (iResult) {
+        if (!isRankable) {
+          iResult.rows.sort(function (itemA, itemB) {
+            return itemsObj[itemA.id] - itemsObj[itemB.id]; // sort by count
+          });
+        }
+
+        callback({
+          message: list.message,
+          items: iResult.rows,
+          isRankable: isRankable
+        });
+      }, 'error retrieving items');
     }, 'error retrieving list');
   },
 
@@ -121,18 +132,16 @@ Database.prototype = {
     var _this = this;
 
     _this.runQuery(listQuery, [listId, '%' + listId + '%'], function (lResult) {
-      if (lResult && lResult.rows) {
-        var list = lResult.rows[0];
-        var categoryId = list.categoryid;
-        var listPrompt = list.message;
-        var numChoices = list.itemsperranker;
+      var list = lResult.rows[0];
+      var categoryId = list.categoryid;
+      var listPrompt = list.message;
+      var numChoices = list.itemsperranker;
 
-        callback({
-          categoryId: categoryId,
-          listPrompt: listPrompt,
-          numChoices: numChoices
-        });
-      }
+      callback({
+        categoryId: categoryId,
+        listPrompt: listPrompt,
+        numChoices: numChoices
+      });
     }, 'error retrieving list');
   },
 
@@ -146,9 +155,7 @@ Database.prototype = {
                         'ORDER BY c.name';
 
     this.runQuery(categoryQuery, [], function (cResult) {
-      if (cResult && cResult.rows) {
-        callback(cResult.rows);
-      }
+      callback(cResult.rows);
     }, 'error retrieving categories');
   },
 
@@ -164,9 +171,7 @@ Database.prototype = {
                        'ORDER BY o.name';
 
     this.runQuery(optionsQuery, [categoryId], function (oResult) {
-      if (oResult && oResult.rows) {
-        callback(oResult.rows);
-      }
+      callback(oResult.rows);
     }, 'error retrieving options');
   },
 
@@ -285,33 +290,31 @@ Database.prototype = {
     var _this = this;
 
     _this.runQuery(listQuery, [alias], function (lResult) {
-      if (lResult && lResult.rows) {
-        var list = lResult.rows[0];
-        var listId = list.id;
-        var aliases = list.aliases.split(',');
-        var rankers = list.rankers.split(',');
-        var items = JSON.parse(list.items);
+      var list = lResult.rows[0];
+      var listId = list.id;
+      var aliases = list.aliases.split(',');
+      var rankers = list.rankers.split(',');
+      var items = JSON.parse(list.items);
 
-        var remainingAliases = aliases.removeVal(alias).join(',');
+      var remainingAliases = aliases.removeVal(alias).join(',');
 
-        ranking = JSON.parse(ranking);
-        
-        for (var itemId in ranking) {
-          items[itemId] += ranking[itemId];
-        }
-        
-        _this.runQuery(updateQuery, [remainingAliases, JSON.stringify(items), listId], function (uResult) {
-          if (remainingAliases === '') {
-            var numRankers = rankers.length;
-
-            for (var i = 0, l = numRankers; i < l; i++) {
-              twilio.send([rankers[i]], 'See results: ' + RANKING_ENDPOINT + listId);
-            }
-          }
-
-          callback();
-        }, 'error updating list');
+      ranking = JSON.parse(ranking);
+      
+      for (var itemId in ranking) {
+        items[itemId] += ranking[itemId];
       }
+      
+      _this.runQuery(updateQuery, [remainingAliases, JSON.stringify(items), listId], function (uResult) {
+        if (remainingAliases === '') {
+          var numRankers = rankers.length;
+
+          for (var i = 0, l = numRankers; i < l; i++) {
+            twilio.send([rankers[i]], 'See results: ' + RANKING_ENDPOINT + listId);
+          }
+        }
+
+        callback();
+      }, 'error updating list');
     }, 'error retrieving list');
   },
 

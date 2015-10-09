@@ -13,7 +13,7 @@ const _path = window.location.hash.match(/#(.+)/)[1];
 // route regexes
 const CREATE_LIST_REGEX = /\/create\/list/;
 const MAKE_SELECTION_REGEX = /\/make-selection\/([a-f\d\-]+)/;
-const RANK_LIST_REGEX = /\/list\/([a-f\d\-]+)/;
+const RANK_LIST_REGEX = /\/(list|results)\/([a-f\d\-]+)/;
 
 function getComponentByRoute() {
   switch (true) {
@@ -30,7 +30,7 @@ function getComponentByRoute() {
         );
 
     case RANK_LIST_REGEX.test(_path):
-      let listId = _path.match(RANK_LIST_REGEX)[1];
+      let listId = _path.match(RANK_LIST_REGEX)[2];
       
       return (
           <RankedList listId={ listId } />
