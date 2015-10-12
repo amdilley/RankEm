@@ -17,8 +17,13 @@
     -moz-transition: top $itemTransitionTime, background-color $itemTransitionTime;
     transition: top $itemTransitionTime, background-color $itemTransitionTime;
 
+    &:not(:first-child) {
+      border-top: 1px solid $itemBorderColor;
+    }
+
     .item-text {
       float: left;
+      color: $itemTextColor;
     }
 
     .item-controls {
@@ -44,10 +49,6 @@
         opacity: $disabledOpacity;
         cursor: not-allowed;
       }
-
-      &:not(.disabled):hover {
-        text-shadow: $defaultTextBorder;
-      }
     }
 
     .move-up:not(.disabled):hover {
@@ -63,7 +64,6 @@
 @for $i from 0 to $maxItemIndex {
   .item-#{$i} {
     top: $i * $itemHeight;
-    background-color: mix($bottomItemColor, $topItemColor, (100 * $i / $maxItemIndex));
     z-index: $itemBaseZIndex + (($maxItemIndex - $i) * $itemZIndexIncrement);
   }
 }

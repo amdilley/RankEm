@@ -88,12 +88,14 @@ app.post('/db/list', function (req, res) {
       res.json({
         result: 'list created'
       });
-    });
+  });
 });
 
 // submit category option selection
 app.post('/db/select', function (req, res) {
-  db.submitSelection(req.body.alias, req.body.options, function () {
+  var timestamp = new Date();
+
+  db.submitSelection(req.body.alias, req.body.options, timestamp, function () {
     res.json({
       result: 'selection submitted'
     });

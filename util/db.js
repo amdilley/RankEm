@@ -1,4 +1,6 @@
+var moment = require('moment');
 var pg = require('pg');
+var schedule = require('node-schedule');
 var uuid = require('uuid');
 
 var Twilio = require('./twilio');
@@ -45,7 +47,7 @@ Database.prototype = {
    * Generic query handler for Database class.
    * @param {string} query PostgreSQL query
    * @param {array} queryData array of interpolated variables for query
-   * @param {function} callback handler for query result
+   * @param {function} callback callback handler for query result
    * @param {string} errorMessage console message on query failure
    */
   runQuery: function (query, queryData, callback, errorMessage) {
@@ -77,7 +79,7 @@ Database.prototype = {
   /**
    * Retrieve list items.
    * @param {string} listId ID of list row in databse
-   * @param {function} callback to be executed on query completion
+   * @param {function} callback callback to be executed on query completion
    */
   getListItemsById: function (listId, callback) {
     // List ranking should not be accesible until all selections are cast
@@ -122,7 +124,7 @@ Database.prototype = {
   /**
    * Retrieve category items for a given list category.
    * @param {string} listId ID of alias in list row in databse
-   * @param {function} callback to be executed on query completion
+   * @param {function} callback callback to be executed on query completion
    */
   getCategoryItemsByListId: function (listId, callback) {
     var listQuery = 'SELECT l.categoryId, l.message, l.itemsPerRanker FROM lists l ' +
@@ -147,7 +149,7 @@ Database.prototype = {
 
   /**
    * Retrieve categories.
-   * @param {function} callback to be executed on query completion
+   * @param {function} callback callback to be executed on query completion
    * @return {array} category list
    */
   getCategories: function (callback) {
@@ -162,7 +164,7 @@ Database.prototype = {
   /**
    * Retrieve category options.
    * @param {string} categoryId ID of category to select options from
-   * @param {function} callback to be executed on query completion
+   * @param {function} callback callback to be executed on query completion
    * @return {array} category options
    */
   getCategoryOptions: function (categoryId, callback) {                  
@@ -178,7 +180,7 @@ Database.prototype = {
   /**
    * Create category row.
    * @param {string} categoryName display name of new category
-   * @param {function} callback to be executed on query completion
+   * @param {function} callback callback to be executed on query completion
    * @return {object} category metadata
    */
   createCategory: function (categoryName, callback) {
@@ -200,7 +202,7 @@ Database.prototype = {
    * @param {string} expiration timestamp marking when submissions are no longer valid (YYYY-MM-DD HH:MM:SSZ)
    * @param {string} rankers comma separated list of phone numbers
    * @param {number} itemsPerRanker number of items each ranker must select
-   * @param {function} callback to be executed on query completion
+   * @param {function} callback callback to be executed on query completion
    */
   createList: function (aliases, categoryId, message, expiration, rankers, itemsPerRanker, callback) {
     var listQuery = 'INSERT INTO lists ' +
@@ -217,6 +219,8 @@ Database.prototype = {
         twilio.send([rankersList[i]], message + ': ' + SELECTION_ENDPOINT + aliasList[i]);
       }
 
+      // TODO add scheduling callback for triggerFinalSelection here
+
       callback();
     }, 'error creating list');
   },
@@ -225,49 +229,39 @@ Database.prototype = {
    * Submit category option(s)
    * @param {string} alias ID of list row in databse
    * @param {string} options comma separated list of selected option(s)
-   * @param {function} callback to be executed on query completion
+   * @param {string} timestamp time selection request was submitted
+   * @param {function} callback callback to be executed on query completion
    */
-  submitSelection: function (alias, options, callback) {
-    var listQuery   = 'SELECT l.id, l.aliases, l.rankers, l.items FROM lists l ' +
+  submitSelection: function (alias, options, timestamp, callback) {
+    var listQuery   = 'SELECT l.id, l.aliases, l.rankers, l.items, l.expiration FROM lists l ' +
                       'WHERE l.aliases LIKE $1';
     var updateQuery = 'UPDATE lists ' +
                       'SET aliases = $1, items = $2 ' +
                       'WHERE id = $3';
-    var aliasQuery  = 'UPDATE lists ' +
-                      'SET aliases = $1 ' +
-                      'WHERE id = $2';
 
     var _this = this;
 
     _this.runQuery(listQuery, ['%' + alias + '%'], function (lResult) {
-      if (lResult && lResult.rows) {
-        var list = lResult.rows[0];
-        var listId = list.id;
-        var rankers = list.rankers.split(',');
-        var aliases = list.aliases.split(',');
-        var items = list.items ? JSON.parse(list.items) : {};
+      var list = lResult.rows[0];
+      var listId = list.id;
+      var rankers = list.rankers.split(',');
+      var aliases = list.aliases.split(',');
+      var items = list.items ? JSON.parse(list.items) : {};
+      var expiration = list.expiration;
 
-        var remainingAliases = aliases.removeVal(alias).join(',');
+      var remainingAliases = aliases.removeVal(alias).join(',');
 
-        options = options.split(',');
+      options = options.split(',');
 
-        for (var i = 0, l = options.length; i < l; i++) {
-          items[options[i]] = 0;
-        }
+      for (var i = 0, l = options.length; i < l; i++) {
+        items[options[i]] = 0;
+      }
 
+      // Don't process selection submissions past expiration date
+      if (moment(timestamp) <= moment(expiration)) {
         _this.runQuery(updateQuery, [remainingAliases, JSON.stringify(items), listId], function (uResult) {
           if (remainingAliases === '') {
-            // TODO: alert rankers with rankable list link
-            var numRankers = rankers.length;
-            var newAliases = _this.generateAliases(numRankers);
-
-            _this.runQuery(aliasQuery, [newAliases.join(','), listId], function (aResult) {
-              for (var i = 0, l = numRankers; i < l; i++) {
-                twilio.send([rankers[i]], 'Rank Em here: ' + RANKING_ENDPOINT + newAliases[i]);
-              }
-
-              callback();
-            }, 'error sending out texts to rankers');
+            _this.triggerFinalSelection(rankers, listId, callback);
           }
         }, 'error updating list');
       }
@@ -277,8 +271,8 @@ Database.prototype = {
   /**
    * Submit list ranking
    * @param {string} alias ID of list row in databse
-   * @param {string} ranking hashmap
-   * @param {function} callback to be executed on query completion
+   * @param {string} ranking ranking hashmap
+   * @param {function} callback callback to be executed on query completion
    */
   submitRanking: function (alias, ranking, callback) {
     var listQuery   = 'SELECT l.id, l.aliases, l.rankers, l.items FROM lists l ' +
@@ -317,6 +311,28 @@ Database.prototype = {
       }, 'error updating list');
     }, 'error retrieving list');
   },
+
+  /**
+   * Triggers list row update and sends notification to rankers
+   * @param {array} rankers list of ranker telephone numbers
+   * @param {string} listId id of list row to be updated
+   * @param {function} callback callback to be executed on query completion
+   */
+  triggerFinalSelection: function (rankers, listId, callback) {
+    var numRankers = rankers.length;
+    var newAliases = this.generateAliases(numRankers);
+    var aliasQuery = 'UPDATE lists ' +
+                     'SET aliases = $1 ' +
+                     'WHERE id = $2';
+
+    this.runQuery(aliasQuery, [newAliases.join(','), listId], function (aResult) {
+      for (var i = 0, l = numRankers; i < l; i++) {
+        twilio.send([rankers[i]], 'Rank Em here: ' + RANKING_ENDPOINT + newAliases[i]);
+      }
+
+      callback();
+    }, 'error sending out texts to rankers');
+  }
 
   /**
    * Generates a list of alias UUIDs

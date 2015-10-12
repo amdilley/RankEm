@@ -70,7 +70,7 @@ const RankedList = React.createClass({
               </button>
             </div>
           </div>
-          <div id="rankedList" className="row">
+          <div id="rankedList" className="row col-xs-12">
             { this.state.items }
           </div>
         </div>
