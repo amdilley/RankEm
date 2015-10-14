@@ -60,13 +60,15 @@ const RankedItem = React.createClass({
 
     return (
         <div className={ classes.join(' ') }>
-          <div className="item-text">{ this.props.text }</div>
-          <div className="item-controls">
-            <div className={ upClasses }
-              onClick={ this._moveUp }>
-            </div>
-            <div className={ downClasses }
-              onClick={ this._moveDown }>
+          <div className="inner-item col-xs-12">
+            <div className="item-text">{ this.props.text }</div>
+            <div className="item-controls">
+              <div className={ upClasses }
+                onClick={ this._moveUp }>
+              </div>
+              <div className={ downClasses }
+                onClick={ this._moveDown }>
+              </div>
             </div>
           </div>
         </div>

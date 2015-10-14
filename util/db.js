@@ -10,6 +10,8 @@ var BASE_ROOT = 'http://localhost:3000/#';
 var SELECTION_ENDPOINT = BASE_ROOT + '/make-selection/';
 var RANKING_ENDPOINT = BASE_ROOT + '/list/';
 
+var _scheduledEvents = {};
+
 /**
  * Randomize array element order in-place
  * Using Fisher-Yates shuffle algorithm.
@@ -210,7 +212,9 @@ Database.prototype = {
 
     var listId = this.generateUUID();
 
-    this.runQuery(listQuery, [listId, aliases, categoryId, message, expiration, rankers, itemsPerRanker, ''], function () {
+    var _this = this;
+
+    _this.runQuery(listQuery, [listId, aliases, categoryId, message, expiration, rankers, itemsPerRanker, ''], function () {
       // send links to rankers
       var rankersList = rankers.split(',');
       var aliasList = aliases.split(',');
@@ -219,7 +223,12 @@ Database.prototype = {
         twilio.send([rankersList[i]], message + ': ' + SELECTION_ENDPOINT + aliasList[i]);
       }
 
-      // TODO add scheduling callback for triggerFinalSelection here
+      // TODO: fix job scheduler - currently breaking requests
+      _scheduledEvents[listId] = schedule.scheduleJob(expiration, function () {
+        _this.triggerFinalSelection(rankersList, listId, function () {
+          console.log('selection submitted');
+        });
+      });
 
       callback();
     }, 'error creating list');
@@ -258,10 +267,13 @@ Database.prototype = {
       }
 
       // Don't process selection submissions past expiration date
-      if (moment(timestamp) <= moment(expiration)) {
+      if (moment(timestamp).isBefore(moment(expiration))) {
         _this.runQuery(updateQuery, [remainingAliases, JSON.stringify(items), listId], function (uResult) {
           if (remainingAliases === '') {
-            _this.triggerFinalSelection(rankers, listId, callback);
+            _this.triggerFinalSelection(rankers, listId, function () {
+              _scheduledEvents[listId].cancel();
+              callback();
+            });
           }
         }, 'error updating list');
       }
@@ -332,7 +344,7 @@ Database.prototype = {
 
       callback();
     }, 'error sending out texts to rankers');
-  }
+  },
 
   /**
    * Generates a list of alias UUIDs

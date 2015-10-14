@@ -23,7 +23,7 @@ Twilio.prototype = {
         to: recipients[i],
         body: message
       }, function (err, message) {
-        console.log(err, message.sid);
+        console.log(err);
       });
     }
   }

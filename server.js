@@ -64,9 +64,9 @@ app.get('/db/category-options/:alias', function (req, res) {
 
 // create new list
 app.post('/db/list', function (req, res) {
-  var days    = req.body.days || DEFAULT_OFFSET_DAYS;
-  var hours   = req.body.hours || DEFAULT_OFFSET_HOURS;
-  var minutes = req.body.minutes || DEFAULT_OFFSET_MINUTES;
+  var days    = req.body.days !== undefined ? req.body.days : DEFAULT_OFFSET_DAYS;
+  var hours   = req.body.hours !== undefined ? req.body.hours : DEFAULT_OFFSET_HOURS;
+  var minutes = req.body.minutes !== undefined ? req.body.minutes : DEFAULT_OFFSET_MINUTES;
 
   var now = moment();
   now.format('YYYY-MM-DD HH:mm:ss Z');
@@ -82,7 +82,7 @@ app.post('/db/list', function (req, res) {
     aliases.join(','),
     req.body.categoryId,
     req.body.message,
-    expiration,
+    expiration._d,
     rankers,
     req.body.itemsPerRanker, function () {
       res.json({

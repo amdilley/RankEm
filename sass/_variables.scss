@@ -14,12 +14,17 @@ $successBorder: #d6e9c6;
 
 $topHeaderMargin: 18px;
 
+
 /* Items */
 $maxItemIndex: 19;
-$itemHeight: 60px;
-$itemTextColor: #666;
-$itemBorderColor: #ddd;
+
+$rankedItemPadding: 4px;
+$rankedItemHeight: 60px;
+
+$innerItemHeight: 50px;
+$innerItemBorderRadius: 4px;
+$itemTextColor: #444;
 $itemBaseZIndex: 100;
 $itemZIndexIncrement: 10;
 $itemTransitionTime: 0.5s;
-$disabledOpacity: 0.4;
+$disabledOpacity: 0.2;

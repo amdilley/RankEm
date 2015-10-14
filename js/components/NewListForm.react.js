@@ -183,9 +183,9 @@ const NewListForm = React.createClass({
     let data = {
       categoryId: this.state.listCategory,
       message: this.state.listPrompt,
-      days: this.state.days,
-      hours: this.state.hours,
-      minutes: this.state.minutes,
+      days: this.state.expirationDays,
+      hours: this.state.expirationHours,
+      minutes: this.state.expirationMinutes,
       rankers: this.state.listRankers.replace(PHONE_NUMBER_REGEX, ''),
       itemsPerRanker: this.state.numChoices
     };
