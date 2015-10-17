@@ -1,3 +1,7 @@
 @import 'variables';
 
 @import 'ranked-items';
+
+#app {
+  padding-top: $appPaddingTop;
+}

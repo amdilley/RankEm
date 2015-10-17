@@ -186,8 +186,11 @@ Database.prototype = {
    * @return {object} category metadata
    */
   createCategory: function (categoryName, callback) {
-    var categoryQuery = 'INSERT INTO categories ' +
-                        'VALUES ($1, $2)';
+    var categoryQuery = 'INSERT INTO categories (id, name) ' +
+                        'SELECT $1, $2 ' +
+                        'WHERE NOT EXISTS (' +
+                          'SELECT * FROM categories WHERE name = $2' + 
+                        ')';
 
     var categoryId = this.generateUUID();
 
