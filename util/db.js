@@ -170,11 +170,15 @@ Database.prototype = {
    * @return {array} category options
    */
   getCategoryOptions: function (categoryId, callback) {                  
-    var optionsQuery = 'SELECT o.id, o.name FROM category_options o ' +
-                       'WHERE o.categoryId = $1 ' +
+    var optionsQuery = 'SELECT o.id, o.name ' +
+                       'FROM category_options o ' +
+                       'JOIN categories c ' +
+                       'ON c.id = o.categoryid ' +
+                       'WHERE c.id = $1 ' +
+                       'OR c.child_categories LIKE $2 ' + 
                        'ORDER BY o.name';
 
-    this.runQuery(optionsQuery, [categoryId], function (oResult) {
+    this.runQuery(optionsQuery, [categoryId, '%' + categoryId + '%'], function (oResult) {
       callback(oResult.rows);
     }, 'error retrieving options');
   },
