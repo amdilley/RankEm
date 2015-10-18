@@ -120,6 +120,33 @@ app.post('/db/category', function (req, res) {
   });
 });
 
+// update category
+app.post('/db/category/update', function (req, res) {
+  db.editCategory(req.body.categoryId, req.body.name, req.body.children function () {
+    res.json({
+      result: 'category updated'
+    });
+  });
+});
+
+// create new category option
+app.post('/db/option', function (req, res) {
+  db.addCategoryOption(req.body.categoryId, req.body.name, function () {
+    res.json({
+      result: 'category option added'
+    });
+  });
+});
+
+// remove category option
+app.post('/db/option', function (req, res) {
+  db.removeCategoryOption(req.body.optionId, function () {
+    res.json({
+      result: 'category option removed'
+    });
+  });
+});
+
 app.get('/db/uuid', function (req, res) {
   var uuid = db.generateUUID();
   res.json({ uuid: uuid });

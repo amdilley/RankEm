@@ -152,7 +152,6 @@ Database.prototype = {
   /**
    * Retrieve categories.
    * @param {function} callback callback to be executed on query completion
-   * @return {array} category list
    */
   getCategories: function (callback) {
     var categoryQuery = 'SELECT * FROM categories c '+
@@ -164,10 +163,26 @@ Database.prototype = {
   },
 
   /**
+   * Edit category name and associations.
+   * @param {string} categoryId ID of category to edit
+   * @param {string} categoryName new name of category
+   * @param {string} childCategories comma separated list of child categories
+   * @param {function} callback callback to be executed on query completion
+   */
+  editCategory: function (categoryId, categoryName, childCategories, callback) {
+    var updateQuery = 'UPDATE categories ' +
+                      'SET name = $2, child_categories = $3 ' +
+                      'WHERE id = $1';
+
+    this.runQuery(updateQuery, [categoryId, categoryName, childCategories], function (uResult) {
+      callback();
+    });
+  },
+
+  /**
    * Retrieve category options.
    * @param {string} categoryId ID of category to select options from
    * @param {function} callback callback to be executed on query completion
-   * @return {array} category options
    */
   getCategoryOptions: function (categoryId, callback) {                  
     var optionsQuery = 'SELECT o.id, o.name ' +
@@ -184,10 +199,40 @@ Database.prototype = {
   },
 
   /**
+   * Add category option.
+   * @param {string} categoryId ID of category to add option to
+   * @param {string} option display text for option 
+   * @param {function} callback callback to be executed on query completion
+   */
+  addCategoryOption: function (categoryId, option, callback) {
+    var insertQuery = 'INSERT INTO category_options ' +
+                      'VALUES ($1, $2, $3)';
+
+    var optionId = this.generateUUID();
+
+    this.runQuery(insertQuery, [optionId, categoryId, option], function () {
+      callback();
+    });
+  },
+
+  /**
+   * Remove category option.
+   * @param {string} optionId ID of option to remove 
+   * @param {function} callback callback to be executed on query completion
+   */
+  removeCategoryOption: function (optionId, callback) {
+    var deleteQuery = 'DELETE category_options ' +
+                      'WHERE id = $1';
+
+    this.runQuery(deleteQuery, [optionId], function () {
+      callback();
+    });
+  },
+
+  /**
    * Create category row.
    * @param {string} categoryName display name of new category
    * @param {function} callback callback to be executed on query completion
-   * @return {object} category metadata
    */
   createCategory: function (categoryName, callback) {
     var categoryQuery = 'INSERT INTO categories (id, name) ' +
