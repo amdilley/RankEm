@@ -14,9 +14,8 @@ const NewCategoryForm = React.createClass({
   render() {
     return (
         <form className="form-horizontal">
-          <div className="form-group">
-            <label className="col-xs-2 control-label" htmlFor="categoryName">New Category Name</label>
-            <div className="col-xs-6">
+          <div className="col-xs-6">
+            <div className="input-group">
               <input
                 type="text"
                 id="categoryName"
@@ -24,14 +23,12 @@ const NewCategoryForm = React.createClass({
                 placeholder="Category Name"
                 value={ this.state.categoryName }
                 onChange={ this._handleNameChange } />
-            </div>
-          </div>
-          <div className="form-group">
-            <div className="col-xs-offset-2 col-xs-3">
-              <button
-                className="btn btn-default"
-                onClick={ this._submit } >Add Category
-              </button>
+                <div className="input-group-btn">
+                  <button
+                    className="btn btn-default"
+                    onClick={ this._submit } >Add Category
+                  </button>
+                </div>
             </div>
           </div>
         </form>

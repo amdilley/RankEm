@@ -122,7 +122,7 @@ app.post('/db/category', function (req, res) {
 
 // update category
 app.post('/db/category/update', function (req, res) {
-  db.editCategory(req.body.categoryId, req.body.name, req.body.children function () {
+  db.editCategory(req.body.categoryId, req.body.name, req.body.children, function () {
     res.json({
       result: 'category updated'
     });
