@@ -1,8 +1,8 @@
 const React = require('react');
 const ReactPropTypes = React.PropTypes;
 
-// actions
-const RankedListActions = require('../actions/RankedListActions');
+// nested components
+const Chosen = require('react-chosen');
 
 function renderOptions(options) {
   return options.map((option, i) => {
@@ -16,7 +16,10 @@ const SelectOptions = React.createClass({
   propTypes: {
     id: ReactPropTypes.string,
     numChoices: ReactPropTypes.number,
-    path: ReactPropTypes.string
+    path: ReactPropTypes.string,
+    placeholder: ReactPropTypes.string,
+    loadHandler: ReactPropTypes.func,
+    changeHandler: ReactPropTypes.func
   },
 
   getInitialState() {
@@ -27,33 +30,28 @@ const SelectOptions = React.createClass({
 
   componentDidMount() {
     $.get(this.props.path, (data) => {
-      RankedListActions.select(data[0].id);
+      if (this.props.loadHandler) {
+        this.props.loadHandler(data);
+      }
+      
       this.setState({
         options: renderOptions(data)
       });
     });
   },
 
-  componentWillUnmount() {
-
-  },
-
   render() {
     return (
-        <select
+        <Chosen
           id={ this.props.id }
           className="form-control"
+          data-placeholder={ this.props.placeholder }
           multiple={ this.props.numChoices > 1 }
-          onChange={ this._select } >
+          maxSelectedOptions={ this.props.numChoices }
+          onChange={ this.props.changeHandler } >
           { this.state.options }
-        </select>
+        </Chosen>
       );
-  },
-
-  _select(e) {
-    var optionValues = $(e.target).val();
-
-    RankedListActions.select(optionValues);
   }
 });
 

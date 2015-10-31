@@ -1,6 +1,7 @@
 const React = require('react');
 
 // nested components
+const EditCategoryForm = require('./EditCategoryForm.react');
 const MakeSelection = require('./MakeSelection.react');
 const NewCategoryForm = require('./NewCategoryForm.react');
 const NewListForm = require('./NewListForm.react');
@@ -14,6 +15,7 @@ const _path = window.location.hash.match(/#(.+)/)[1];
 // route regexes
 const CREATE_CATEGORY_REGEX = /\/create\/category/;
 const CREATE_LIST_REGEX = /\/create\/list/;
+const EDIT_CATEGORY = /\/edit\/category/;
 const MAKE_SELECTION_REGEX = /\/make-selection\/([a-f\d\-]+)/;
 const RANK_LIST_REGEX = /\/(list|results)\/([a-f\d\-]+)/;
 
@@ -27,6 +29,11 @@ function getComponentByRoute() {
     case CREATE_LIST_REGEX.test(_path):
       return (
           <NewListForm />
+        );
+
+    case EDIT_CATEGORY.test(_path):
+      return (
+          <EditCategoryForm />
         );
 
     case MAKE_SELECTION_REGEX.test(_path):

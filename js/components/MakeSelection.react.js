@@ -4,6 +4,9 @@ const ReactPropTypes = React.PropTypes;
 // nested components
 const SelectOptions = require('./SelectOptions.react');
 
+// actions
+const RankedListActions = require('../actions/RankedListActions');
+
 // stores
 const RankedListStore = require('../stores/RankedListStore');
 
@@ -31,11 +34,14 @@ const MakeSelection = React.createClass({
     });
 
     $.get('/db/category-options/' + this.props.alias, (data) => {
-      var renderedOptions = (
+      let renderedOptions = (
           <SelectOptions
             id="categoryOption"
             numChoices={ +data.numChoices }
-            path={  '/db/options/' + data.categoryId } />
+            path={  '/db/options/' + data.categoryId }
+            placeholder={ 'Select ' + data.numChoices }
+            loadHandler={ this._onOptionsLoad }
+            changeHandler={ this._onSelectChange } />
         );
 
       this.setState({
@@ -63,7 +69,6 @@ const MakeSelection = React.createClass({
         <form className={ classes } >
           <h2>
             { this.state.listPrompt }
-            <small> Select { this.state.numChoices }</small>
           </h2>
           <div className="form-group">
             { this.state.renderedOptions }
@@ -78,6 +83,16 @@ const MakeSelection = React.createClass({
           </div>
         </form>
       );
+  },
+
+  _onOptionsLoad(data) {
+    RankedListActions.select(data[0].id);
+  },
+
+  _onSelectChange(e) {
+    let optionValues = $(e.target).val();
+
+    RankedListActions.select(optionValues);
   },
 
   _submit(e) {
