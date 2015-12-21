@@ -9,7 +9,8 @@ const EditCategoryForm = React.createClass({
   getInitialState() {
     return {
       isHidden: true,
-      renderedCategories: null
+      renderedCategories: null,
+      renderedOptions: null
     };
   },
 
@@ -25,7 +26,7 @@ const EditCategoryForm = React.createClass({
 
     this.setState({
       isHidden: false,
-      renderedCategories: renderedCategories
+      renderedCategories: renderedCategories,
     });
   },
 
@@ -39,15 +40,37 @@ const EditCategoryForm = React.createClass({
           <h2>Edit Categories</h2>
           <div className="form-group">
             { this.state.renderedCategories }
+            { this.state.renderedOptions }
           </div>
         </form>
       );
   },
 
-  _onSelectChange(e) {
-    let category = $(e.target).val();
+  _onOptionsChange(e) {
+    let categoryOptionsId = $(e.target).val();
 
-    console.log(category);
+    // console.log(categoryOptionsId);
+  },
+
+  _onSelectChange(e) {
+    let categoryId = $(e.target).val();
+
+    this._renderCategoryOptions(categoryId);
+  },
+
+  _renderCategoryOptions(categoryId) {
+    let renderCategoryOptions = (
+        <SelectOptions
+          id="options"
+          numChoices={ 100 }
+          path={ '/db/options/' + categoryId }
+          placeholder="Select options to remove"
+          changeHandler={ this._onOptionsChange } />
+      );
+
+    this.setState({
+      renderedOptions: renderCategoryOptions
+    });
   }
 });
 

@@ -33,7 +33,19 @@ const SelectOptions = React.createClass({
       if (this.props.loadHandler) {
         this.props.loadHandler(data);
       }
-      
+
+      this.setState({
+        options: renderOptions(data)
+      });
+    });
+  },
+
+  componentWillReceiveProps(props) {
+    $.get(props.path, (data) => {
+      if (props.loadHandler) {
+        props.loadHandler(data);
+      }
+
       this.setState({
         options: renderOptions(data)
       });

@@ -44,7 +44,9 @@ const NewListForm = React.createClass({
             <SelectOptions
               id="listCategory"
               numChoices={ 1 }
-              path="/db/categories" />
+              path="/db/categories"
+              value={ this.state.listCategory }
+              changeHandler={ this._handleCategoryChange } />
           </div>
           <div className="form-group">
             <label htmlFor="listPrompt">Prompt</label>
@@ -143,6 +145,10 @@ const NewListForm = React.createClass({
           </div>
         </form>
       );
+  },
+
+  _handleCategoryChange(e) {
+    this._handleChange(e.target.value, 'listCategory');
   },
 
   _handleChange(value, paramName) {

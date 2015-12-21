@@ -1,7 +1,7 @@
 const React = require('react');
 const ReactPropTypes = React.PropTypes;
 
-const CATEGORY_NAME_REGEX = /^\w+(\s\w+)?(\s\w+)?$/g;
+const CATEGORY_NAME_REGEX = /^\w+(\s\w+)?(\s\w+)?$/g; // 1-3 word category titles
 const MAX_CATEGORY_LENGTH = 80;
 
 const NewCategoryForm = React.createClass({
