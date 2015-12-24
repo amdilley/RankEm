@@ -150,6 +150,20 @@ Database.prototype = {
   },
 
   /**
+   * Retrieve single category.
+   * @param {string} categoryId ID of category
+   * @param {function} callback callback to be executed on query completion
+   */
+  getCategory: function (categoryId, callback) {
+    var categoryQuery = 'SELECT * FROM categories c '+
+                        'WHERE c.id = $1';
+
+    this.runQuery(categoryQuery, [categoryId], function (cResult) {
+      callback(cResult.rows[0]);
+    }, 'error retrieving categories');
+  },
+
+  /**
    * Retrieve categories.
    * @param {function} callback callback to be executed on query completion
    */

@@ -1,0 +1,7 @@
+.checkbox label {
+  padding-left: 0;
+}
+
+span ~ [data-toggle] {
+  margin-left: 10px !important;
+}

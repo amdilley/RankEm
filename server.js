@@ -41,6 +41,13 @@ app.get('/db/list/:listId', function (req, res) {
   });
 });
 
+// get single category
+app.get('/db/category/:categoryId', function (req, res) {
+  db.getCategory(req.params.categoryId, function (queryResult) {
+    res.json(queryResult);
+  });
+});
+
 // get all categories
 app.get('/db/categories', function (req, res) {
   db.getCategories(function (queryResult) {
