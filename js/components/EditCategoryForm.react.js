@@ -76,19 +76,25 @@ const EditCategoryForm = React.createClass({
   },
 
   _onCategoriesChange(e) {
-    let categoryId = $(e.target).val();
+    this.setState({
+      categoryId: $(e.target).val()
+    });
 
-    $.get('/db/category/' + categoryId, (data) => {
-      let isDisabledParent = data['child_categories'] !== null;
+    this._renderCategoryAddOptions();
+    this._renderCategoryRemoveOptions();
+  },
 
-      this.setState({
-        isToggleDisabled: isDisabledParent,
-        isParentCategory: isDisabledParent,
-        categoryId: categoryId
-      });
+  _onCurrentChildrenLoad(currentChildren) {
+    let isDisabledParent = currentChildren.length > 0;
 
-      this._renderCategoryAddOptions();
-      this._renderCategoryRemoveOptions();
+    if (isDisabledParent) {
+      $('#hasChildrenToggle').bootstrapToggle('on');
+      $('#hasChildrenToggle').bootstrapToggle('disable');
+    }
+
+    this.setState({
+      isToggleDisabled: isDisabledParent,
+      isParentCategory: isDisabledParent
     });
   },
 
@@ -99,12 +105,11 @@ const EditCategoryForm = React.createClass({
   },
 
   _renderCategoryAddOptions() {
-    // TODO: add db query for eligible child categories. No loops allowed
     let renderAddOptions = this.state.isParentCategory ? (
         <SelectOptions
-          id="options"
+          id="eligible-children"
           numChoices={ 100 }
-          path={ '/db/categories' }
+          path={ '/db/eligible-categories/' + this.state.categoryId }
           placeholder="Select categories to add"
           changeHandler={ this._onOptionsChange } />
       ) : null;
@@ -117,10 +122,11 @@ const EditCategoryForm = React.createClass({
   _renderCategoryRemoveOptions() {
     let renderRemoveOptions = this.state.categoryId ? (
         <SelectOptions
-          id="options"
+          id="current-children"
           numChoices={ 100 }
-          path={ '/db/options/' + this.state.categoryId }
+          path={ '/db/current-categories/' + this.state.categoryId }
           placeholder="Select options to remove"
+          loadHandler={ this._onCurrentChildrenLoad }
           changeHandler={ this._onOptionsChange } />
       ) : null;
 

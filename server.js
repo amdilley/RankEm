@@ -62,6 +62,20 @@ app.get('/db/options/:categoryId', function (req, res) {
   });
 });
 
+// get all eligible child categories 
+app.get('/db/eligible-categories/:categoryId', function (req, res) {
+  db.getEligibleChildCategories(req.params.categoryId, function (queryResult) {
+    res.json(queryResult);
+  });
+});
+
+// get all current child categories 
+app.get('/db/current-categories/:categoryId', function (req, res) {
+  db.getCurrentChildCategories(req.params.categoryId, function (queryResult) {
+    res.json(queryResult);
+  });
+});
+
 // get list of cateogry options to choose from
 app.get('/db/category-options/:alias', function (req, res) {
   db.getCategoryItemsByListId(req.params.alias, function (queryResult) {

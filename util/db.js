@@ -177,19 +177,69 @@ Database.prototype = {
   },
 
   /**
+   * Create category row.
+   * @param {string} categoryName display name of new category
+   * @param {function} callback callback to be executed on query completion
+   */
+  createCategory: function (categoryName, callback) {
+    // initialize path_root as category ID
+    var categoryQuery = 'INSERT INTO categories (id, name, path_root) ' +
+                        'SELECT $1, $2, $1 ' +
+                        'WHERE NOT EXISTS (' +
+                          'SELECT * FROM categories WHERE name = $2' + 
+                        ')';
+
+    var categoryId = this.generateUUID();
+
+    this.runQuery(categoryQuery, [categoryId, categoryName], function () {
+      callback();
+    });
+  },
+
+  /**
    * Edit category name and associations.
    * @param {string} categoryId ID of category to edit
    * @param {string} categoryName new name of category
    * @param {string} childCategories comma separated list of child categories
+   * @param {string} pathRoot root ID of category tree
    * @param {function} callback callback to be executed on query completion
    */
-  editCategory: function (categoryId, categoryName, childCategories, callback) {
+  editCategory: function (categoryId, categoryName, childCategories, pathRoot, callback) {
     var updateQuery = 'UPDATE categories ' +
-                      'SET name = $2, child_categories = $3 ' +
+                      'SET name = $2, child_categories = $3, path_root = $4 ' +
                       'WHERE id = $1';
 
-    this.runQuery(updateQuery, [categoryId, categoryName, childCategories], function (uResult) {
+    this.runQuery(updateQuery, [categoryId, categoryName, childCategories, pathRoot], function (uResult) {
       callback();
+    });
+  },
+
+  /**
+   * Return all categories not sharing a common ancestor.
+   * @param {string} categoryId ID of category to gather child categories for
+   * @param {function} callback callback to be executed on query completion
+   */
+  getEligibleChildCategories: function (categoryId, callback) {
+    var eligibleCategoriesQuery = 'SELECT * FROM categories c ' +
+                                  'WHERE c.path_root != (' +
+                                      'SELECT cat.path_root FROM categories cat ' +
+                                      'WHERE cat.id = $1' +
+                                  ')';
+
+    this.runQuery(eligibleCategoriesQuery, [categoryId], function (eResult) {
+      callback(eResult.rows);
+    });
+  },
+
+  getCurrentChildCategories: function (categoryId, callback) {
+    var currentCategoriesQuery = 'SELECT * FROM categories c '+
+                                 'WHERE POSITION(c.id IN (' +
+                                     'SELECT cat.child_categories FROM categories cat ' +
+                                     'WHERE cat.id = $1' +
+                                 ')) <> 0';
+
+    this.runQuery(currentCategoriesQuery, [categoryId], function (cResult) {
+      callback(cResult.rows);
     });
   },
 
@@ -239,25 +289,6 @@ Database.prototype = {
                       'WHERE id = $1';
 
     this.runQuery(deleteQuery, [optionId], function () {
-      callback();
-    });
-  },
-
-  /**
-   * Create category row.
-   * @param {string} categoryName display name of new category
-   * @param {function} callback callback to be executed on query completion
-   */
-  createCategory: function (categoryName, callback) {
-    var categoryQuery = 'INSERT INTO categories (id, name) ' +
-                        'SELECT $1, $2 ' +
-                        'WHERE NOT EXISTS (' +
-                          'SELECT * FROM categories WHERE name = $2' + 
-                        ')';
-
-    var categoryId = this.generateUUID();
-
-    this.runQuery(categoryQuery, [categoryId, categoryName], function () {
       callback();
     });
   },
