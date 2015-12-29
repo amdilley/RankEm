@@ -60,6 +60,7 @@ const SelectOptions = React.createClass({
           data-placeholder={ this.props.placeholder }
           multiple={ this.props.numChoices > 1 }
           maxSelectedOptions={ this.props.numChoices }
+          width="100%"
           onChange={ this.props.changeHandler } >
           { this.state.options }
         </Chosen>

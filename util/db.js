@@ -193,7 +193,7 @@ Database.prototype = {
 
     this.runQuery(categoryQuery, [categoryId, categoryName], function () {
       callback();
-    });
+    }, 'error creating category');
   },
 
   /**
@@ -202,16 +202,30 @@ Database.prototype = {
    * @param {string} categoryName new name of category
    * @param {string} childCategories comma separated list of child categories
    * @param {string} pathRoot root ID of category tree
+   * @param {string} addedCategories comma separated list of added categories
+   * @param {string} removedCategories comma separated list of removed categories
    * @param {function} callback callback to be executed on query completion
    */
-  editCategory: function (categoryId, categoryName, childCategories, pathRoot, callback) {
-    var updateQuery = 'UPDATE categories ' +
-                      'SET name = $2, child_categories = $3, path_root = $4 ' +
-                      'WHERE id = $1';
+  editCategory: function (categoryId, categoryName, childCategories, pathRoot, addedCategories, removedCategories, callback) {
+    var updateParentQuery  = 'UPDATE categories ' +
+                             'SET name = $2, child_categories = $3, path_root = $4 ' +
+                             'WHERE id = $1';
+    var updateAddedQuery   = 'UPDATE categories ' +
+                             'SET path_root = $1 ' +
+                             'WHERE POSITION(id IN $2) <> 0';
+    var updateRemovedQuery = 'UPDATE categories ' +
+                             'SET path_root = id ' +
+                             'WHERE POSITION(id IN $1) <> 0';
 
-    this.runQuery(updateQuery, [categoryId, categoryName, childCategories, pathRoot], function (uResult) {
-      callback();
-    });
+    var _this = this;
+
+    _this.runQuery(updateParentQuery, [categoryId, categoryName, childCategories, pathRoot], function (pResult) {
+      _this.runQuery(updateAddedQuery, [pathRoot, addedCategories], function (aResult) {
+        _this.runQuery(updateRemovedQuery, [removedCategories], function (rResult) {
+          callback();
+        }, 'error updating path roots of removed categories');
+      }, 'error updating path roots of new child categories');
+    }, 'error updating parent category');
   },
 
   /**
@@ -224,11 +238,12 @@ Database.prototype = {
                                   'WHERE c.path_root != (' +
                                       'SELECT cat.path_root FROM categories cat ' +
                                       'WHERE cat.id = $1' +
-                                  ')';
+                                  ') ' +
+                                  'ORDER BY c.name';
 
     this.runQuery(eligibleCategoriesQuery, [categoryId], function (eResult) {
       callback(eResult.rows);
-    });
+    }, 'error retrieving eligible child categories');
   },
 
   getCurrentChildCategories: function (categoryId, callback) {
@@ -236,11 +251,12 @@ Database.prototype = {
                                  'WHERE POSITION(c.id IN (' +
                                      'SELECT cat.child_categories FROM categories cat ' +
                                      'WHERE cat.id = $1' +
-                                 ')) <> 0';
+                                 ')) <> 0 ' +
+                                 'ORDER BY c.name';
 
     this.runQuery(currentCategoriesQuery, [categoryId], function (cResult) {
       callback(cResult.rows);
-    });
+    }, 'error retrieving current child categories');
   },
 
   /**

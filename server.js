@@ -83,6 +83,22 @@ app.get('/db/category-options/:alias', function (req, res) {
   });
 });
 
+// update existing category
+app.post('/db/update-category', function (req, res) {
+  var categoryId = req.body.categoryId;
+  var categoryName = req.body.categoryName;
+  var childCategories = req.body.childCategories;
+  var pathRoot = req.body.pathRoot;
+  var addedCategories = req.body.addedCategories;
+  var removedCategories = req.body.removedCategories;
+
+  db.editCategory(categoryId, categoryName, childCategories, pathRoot, addedCategories, removedCategories, function () {
+    res.json({
+      result: 'category updated'
+    });
+  });
+});
+
 // create new list
 app.post('/db/list', function (req, res) {
   var days    = req.body.days !== undefined ? req.body.days : DEFAULT_OFFSET_DAYS;
