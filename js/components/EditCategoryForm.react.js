@@ -8,14 +8,15 @@ const SelectOptions = require('./SelectOptions.react');
 const EditCategoryForm = React.createClass({
   getInitialState() {
     return {
+      isCategoryDataLoaded: false,
       isFormHidden: true,
+      isNewOptionsInputHidden: true,
       isParentCategory: false,
       isToggleDisabled: false,
-      areChildOptionsHidden: true,
-      categoryId: '',
-      categoryName: '',
-      childCategories: '',
-      pathRoot: '',
+      categoryId: null,
+      categoryName: null,
+      childCategories: null,
+      newOptions: null,
       renderedCategories: null,
       renderedAddOptions: null,
       renderedRemoveOptions: null,
@@ -31,12 +32,12 @@ const EditCategoryForm = React.createClass({
           numChoices={ 1 }
           path="/db/categories"
           placeholder="Select category to edit"
-          changeHandler={ this._onCategoriesChange } />
+          changeHandler={ this._handleCategoriesChange } />
       );
 
     // toggle initializer and listener
     $('#hasChildrenToggle').bootstrapToggle();
-    $('#hasChildrenToggle').change(this._onChildrenToggle);
+    $('#hasChildrenToggle').change(this._handleChildrenToggle);
 
     this.setState({
       isFormHidden: false,
@@ -48,9 +49,17 @@ const EditCategoryForm = React.createClass({
     let formClasses = cx({
       'hidden': this.state.isFormHidden
     });
-    let optionClasses = cx({
+    let newOptionsClasses = cx({
       'form-group': true,
-      'hidden': this.state.areChildOptionsHidden
+      'hidden': this.state.isNewOptionsInputHidden
+    });
+    let childAddClasses = cx({
+      'form-group': true,
+      'hidden': !this.state.isNewOptionsInputHidden
+    });
+    let childRemoveClasses = cx({
+      'form-group': true,
+      'hidden': !this.state.isCategoryDataLoaded
     });
 
     return (
@@ -73,10 +82,28 @@ const EditCategoryForm = React.createClass({
           <div className="form-group">
             { this.state.renderedCategories }
           </div>
-          <div className={ optionClasses }>
+          <div className={ childRemoveClasses }>
+            <input
+              type="text"
+              id="categoryName"
+              className="form-control"
+              placeholder="Category name"
+              value={ this.state.categoryName }
+              onChange={ this._handleCategoryNameChange } />
+          </div>
+          <div className={ newOptionsClasses }>
+            <input
+              type="text"
+              id="addNewOptions"
+              className="form-control"
+              placeholder="Enter new options separated by ;"
+              value={ this.state.newOptions }
+              onChange={ this._handleNewOptionsChange } />
+          </div>
+          <div className={ childAddClasses }>
             { this.state.renderedAddOptions }
           </div>
-          <div className={ optionClasses }>
+          <div className={ childRemoveClasses }>
             { this.state.renderedRemoveOptions }
           </div>
           <div className="form-group">
@@ -95,31 +122,36 @@ const EditCategoryForm = React.createClass({
     let removedCategoryIds = this.state.stagedRemovedCategories;
     let formattedChildCategories = this.state.childCategories;
 
+    if (formattedChildCategories === null) {
+      return this.state.stagedAddedCategories.join(',');
+    }
+
     for (let categoryId of removedCategoryIds) {
       formattedChildCategories = formattedChildCategories.replace(categoryId, '')
                                                          .replace(/^,|,(?=,)|,$/, '');
     }
 
-    return formattedChildCategories + ',' + this.state.stagedAddedCategories.join(',')
+    return formattedChildCategories + ',' + this.state.stagedAddedCategories.join(',');
   },
 
-  _onAddOptionsChange(e) {
-    let addedCategoryIds = $(e.target).val();
-
-    this.setState({
-      stagedAddedCategories: addedCategoryIds
-    });
+  _handleAddOptionsChange(e) {
+    this._handleChange($(e.target).val(), 'stagedAddedCategories');
   },
 
-  _onChildrenToggle(e) {
+  _handleCategoryNameChange(e) {
+    this._handleChange(e.target.value, 'categoryName');
+  },
+
+  _handleChildrenToggle(e) {
     this.setState({
-      isParentCategory: $(e.target).is(':checked')
+      isParentCategory: $(e.target).is(':checked'),
+      isNewOptionsInputHidden: !this.state.isNewOptionsInputHidden
     });
 
     this._renderCategoryAddOptions();
   },
 
-  _onCategoriesChange(e) {
+  _handleCategoriesChange(e) {
     let categoryId = $(e.target).val();
     let categoryName = $(e.target).find('[value="' + categoryId + '"]').text();
 
@@ -136,38 +168,51 @@ const EditCategoryForm = React.createClass({
     this._renderCategoryRemoveOptions();
   },
 
-  _onCurrentChildrenLoad(currentChildren) {
-    let togglePosition = 'off';
-    let toggleState = 'enable';
-
-    if (currentChildren.length > 0) {
-      let pathRoot = currentChildren[0]['path_root'];
-      let childCategories = currentChildren.map((el) => {
-          return el.id;
-        }).join(',');
-
-      $('#hasChildrenToggle').bootstrapToggle('on');
-      $('#hasChildrenToggle').bootstrapToggle('disable');
-
-      this.setState({
-        childCategories,
-        pathRoot,
-        isToggleDisabled: true,
-        isParentCategory: true,
-        areChildOptionsHidden: false
-      });
-    } else {
-      $('#hasChildrenToggle').bootstrapToggle('off');
-      $('#hasChildrenToggle').bootstrapToggle('enable');
-    }
+  _handleChange(value, paramName) {
+    this.setState({
+      [ (() => paramName)() ]: value
+    });
   },
 
-  _onRemoveOptionsChange(e) {
-    let removedCategoryIds = $(e.target).val();
+  _handleCurrentChildrenLoad(currentChildren) {
+    let togglePosition = 'off';
+    let toggleState = 'enable';
+    let childCategories = null;
+    let isToggleDisabled = false;
+    let isNewOptionsInputHidden = false;
+    let isParentCategory = false;
+
+    if (currentChildren.length > 0 && currentChildren[0]['path_root']) { // parent category
+      togglePosition = 'on';
+      toggleState = 'disable';
+      childCategories = currentChildren.map((el) => {
+          return el.id;
+        }).join(',');
+      isToggleDisabled = true;
+      isNewOptionsInputHidden = true;
+      isParentCategory = true;
+    } else if (currentChildren.length > 0) { // non parent category with children
+      isToggleDisabled = true;
+    }
+
+    $('#hasChildrenToggle').bootstrapToggle(togglePosition);
+    $('#hasChildrenToggle').bootstrapToggle(toggleState);
 
     this.setState({
-      stagedRemovedCategories: removedCategoryIds
+      childCategories,
+      isToggleDisabled,
+      isNewOptionsInputHidden,
+      isParentCategory,
+      isCategoryDataLoaded: true
     });
+  },
+
+  _handleNewOptionsChange(e) {
+    this._handleChange(e.target.value, 'newOptions');
+  },
+
+  _handleRemoveOptionsChange(e) {
+    this._handleChange($(e.target).val(), 'stagedRemovedCategories');
   },
 
   _renderCategoryAddOptions() {
@@ -177,7 +222,7 @@ const EditCategoryForm = React.createClass({
           numChoices={ 100 }
           path={ '/db/eligible-categories/' + this.state.categoryId }
           placeholder="Select categories to add"
-          changeHandler={ this._onAddOptionsChange } />
+          changeHandler={ this._handleAddOptionsChange } />
       ) : null;
 
     this.setState({
@@ -192,8 +237,8 @@ const EditCategoryForm = React.createClass({
           numChoices={ 100 }
           path={ '/db/current-categories/' + this.state.categoryId }
           placeholder="Select options to remove"
-          loadHandler={ this._onCurrentChildrenLoad }
-          changeHandler={ this._onRemoveOptionsChange } />
+          loadHandler={ this._handleCurrentChildrenLoad }
+          changeHandler={ this._handleRemoveOptionsChange } />
       ) : null;
 
     this.setState({
@@ -208,15 +253,14 @@ const EditCategoryForm = React.createClass({
   _submit(e) {
     e.preventDefault();
 
-    ;
-
     let data = {
       categoryId: this.state.categoryId,
       categoryName: this.state.categoryName,
       childCategories: this._getFormattedChildCategories(),
-      pathRoot: this.state.pathRoot,
+      newOptions: this.state.newOptions,
       addedCategories: this.state.stagedAddedCategories.join(','),
-      removedCategories: this.state.stagedRemovedCategories.join(',')
+      removedCategories: this.state.stagedRemovedCategories.join(','),
+      isParentCategory: this.state.isParentCategory
     };
     let ajaxOptions = {
       type: 'POST',
@@ -236,8 +280,12 @@ const EditCategoryForm = React.createClass({
     }
   },
 
+  _validateCategoryName() {
+    return this.state.categoryName.length > 0;
+  },
+
   _validateForm() {
-    return true;
+    return this._validateCategoryName();
   }
 });
 

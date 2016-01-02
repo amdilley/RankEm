@@ -38,7 +38,7 @@ const MakeSelection = React.createClass({
           <SelectOptions
             id="categoryOption"
             numChoices={ +data.numChoices }
-            path={  '/db/options/' + data.categoryId }
+            path={ '/db/options/' + data.categoryId }
             placeholder={ 'Select ' + data.numChoices }
             loadHandler={ this._onOptionsLoad }
             changeHandler={ this._onSelectChange } />

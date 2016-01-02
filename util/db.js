@@ -197,35 +197,52 @@ Database.prototype = {
   },
 
   /**
-   * Edit category name and associations.
+   * Edit category children.
    * @param {string} categoryId ID of category to edit
-   * @param {string} categoryName new name of category
    * @param {string} childCategories comma separated list of child categories
-   * @param {string} pathRoot root ID of category tree
    * @param {string} addedCategories comma separated list of added categories
    * @param {string} removedCategories comma separated list of removed categories
    * @param {function} callback callback to be executed on query completion
    */
-  editCategory: function (categoryId, categoryName, childCategories, pathRoot, addedCategories, removedCategories, callback) {
+  editCategoryChildren: function (categoryId, childCategories, addedCategories, removedCategories, callback) {
     var updateParentQuery  = 'UPDATE categories ' +
-                             'SET name = $2, child_categories = $3, path_root = $4 ' +
+                             'SET child_categories = $2 ' +
                              'WHERE id = $1';
     var updateAddedQuery   = 'UPDATE categories ' +
-                             'SET path_root = $1 ' +
+                             'SET path_root = (' +
+                               'SELECT c.path_root FROM categories c ' +
+                               'WHERE c.id = $1' +
+                             ')' +
                              'WHERE POSITION(id IN $2) <> 0';
     var updateRemovedQuery = 'UPDATE categories ' +
                              'SET path_root = id ' +
                              'WHERE POSITION(id IN $1) <> 0';
 
     var _this = this;
-
-    _this.runQuery(updateParentQuery, [categoryId, categoryName, childCategories, pathRoot], function (pResult) {
-      _this.runQuery(updateAddedQuery, [pathRoot, addedCategories], function (aResult) {
+    
+    _this.runQuery(updateParentQuery, [categoryId, childCategories], function (pResult) {
+      _this.runQuery(updateAddedQuery, [categoryId, addedCategories], function (aResult) {
         _this.runQuery(updateRemovedQuery, [removedCategories], function (rResult) {
           callback();
         }, 'error updating path roots of removed categories');
       }, 'error updating path roots of new child categories');
     }, 'error updating parent category');
+  },
+
+  /**
+   * Edit category name.
+   * @param {string} categoryId ID of category to edit
+   * @param {string} categoryName new name of category
+   * @param {function} callback callback to be executed on query completion
+   */
+  updateCategoryName: function (categoryId, categoryName, callback) {
+    var nameQuery = 'UPDATE categories ' +
+                    'SET name = $2 ' +
+                    'WHERE id = $1';
+
+    this.runQuery(nameQuery, [categoryId, categoryName], function () {
+      callback();
+    }, 'error updating name');
   },
 
   /**
@@ -246,13 +263,20 @@ Database.prototype = {
     }, 'error retrieving eligible child categories');
   },
 
+  /**
+   * Return all categories/options that are direct descendents of specified category.
+   * @param {string} categoryId ID of category to gather child categories for
+   * @param {function} callback callback to be executed on query completion
+   */
   getCurrentChildCategories: function (categoryId, callback) {
-    var currentCategoriesQuery = 'SELECT * FROM categories c '+
+    var currentCategoriesQuery = 'SELECT * FROM categories c ' +
+                                 'NATURAL FULL JOIN category_options o ' + 
                                  'WHERE POSITION(c.id IN (' +
                                      'SELECT cat.child_categories FROM categories cat ' +
                                      'WHERE cat.id = $1' +
                                  ')) <> 0 ' +
-                                 'ORDER BY c.name';
+                                 'OR o.categoryid = $1 ' +
+                                 'ORDER BY c.name, o.name';
 
     this.runQuery(currentCategoriesQuery, [categoryId], function (cResult) {
       callback(cResult.rows);
@@ -264,13 +288,13 @@ Database.prototype = {
    * @param {string} categoryId ID of category to select options from
    * @param {function} callback callback to be executed on query completion
    */
-  getCategoryOptions: function (categoryId, callback) {                  
+  getCategoryOptions: function (categoryId, callback) {
     var optionsQuery = 'SELECT o.id, o.name ' +
                        'FROM category_options o ' +
                        'JOIN categories c ' +
                        'ON c.id = o.categoryid ' +
                        'WHERE c.id = $1 ' +
-                       'OR c.child_categories LIKE $2 ' + 
+                       'OR c.child_categories LIKE $2 ' +
                        'ORDER BY o.name';
 
     this.runQuery(optionsQuery, [categoryId, '%' + categoryId + '%'], function (oResult) {
@@ -279,32 +303,61 @@ Database.prototype = {
   },
 
   /**
-   * Add category option.
-   * @param {string} categoryId ID of category to add option to
-   * @param {string} option display text for option 
+   * Add/Remove options associated with a specified category.
+   * @param {string} categoryId ID of category associated with options
+   * @param {string} newOptions ; delimited list of option display text to be added
+   * @param {string} removedIds comma separated list of IDs of options to be removed from database
    * @param {function} callback callback to be executed on query completion
    */
-  addCategoryOption: function (categoryId, option, callback) {
-    var insertQuery = 'INSERT INTO category_options ' +
-                      'VALUES ($1, $2, $3)';
+  modifyOptions: function (categoryId, newOptions, removedIds, callback) {
+    var newOptionsArray = newOptions.split(';');
+    var removeOptionsArray = removedIds.split(',');
+    var _this = this;
+    
+    if (removedIds && newOptions) {
+      _this.removeCategoryOptions(removeOptionsArray, function () {
+        _this.addCategoryOptions(categoryId, newOptionsArray, callback);
+      });
+    } else if (removedIds) {
+      _this.removeCategoryOptions(removeOptionsArray, callback);
+    } else {
+      _this.addCategoryOptions(categoryId, newOptionsArray, callback);
+    }
+  },
 
-    var optionId = this.generateUUID();
+  /**
+   * Add category option.
+   * @param {string} categoryId ID of category to add options to
+   * @param {array} options array of display texts for options
+   * @param {function} callback callback to be executed on query completion
+   */
+  addCategoryOptions: function (categoryId, options, callback) {
+    var _this = this;
+    var optionsValuesString = options.map(function (option) {
+      var optionId = _this.generateUUID();
+      return '(\'' + optionId + '\', \'' + categoryId + '\', \'' + option + '\')';
+    }).join(',');
+    var insertQuery = 'INSERT INTO category_options (id, categoryid, name) ' +
+                      'VALUES ' + optionsValuesString;
 
-    this.runQuery(insertQuery, [optionId, categoryId, option], function () {
+    _this.runQuery(insertQuery, [], function () {
       callback();
     });
   },
 
   /**
    * Remove category option.
-   * @param {string} optionId ID of option to remove 
+   * @param {array} optionIds array of IDs of options to remove 
    * @param {function} callback callback to be executed on query completion
    */
-  removeCategoryOption: function (optionId, callback) {
-    var deleteQuery = 'DELETE category_options ' +
-                      'WHERE id = $1';
-
-    this.runQuery(deleteQuery, [optionId], function () {
+  removeCategoryOptions: function (optionIds, callback) {
+    var optionIdsString = optionIds.map(function (id) {
+      return 'id = \'' + id + '\'';
+    }).join(' OR ');
+    var deleteQuery = 'DELETE FROM category_options ' +
+                      'WHERE ' + optionIdsString;
+    
+    this.runQuery(deleteQuery, [], function () {
       callback();
     });
   },

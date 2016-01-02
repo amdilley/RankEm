@@ -41,6 +41,10 @@ const NewCategoryForm = React.createClass({
     });
   },
 
+  _resetForm() {
+    window.location.reload(true);
+  },
+
   _submit(e) {
     e.preventDefault();
 
@@ -53,10 +57,11 @@ const NewCategoryForm = React.createClass({
         type: 'POST',
         url: '/db/category',
         data: data,
-        success(result) {
+        success: (result) => {
+          this._resetForm();
           console.log(result);
         },
-        error(xhr, err, text) {
+        error: (xhr, err, text) => {
           console.log(xhr, err, text);
         }
       });

@@ -5,6 +5,12 @@ const ReactPropTypes = React.PropTypes;
 const Chosen = require('react-chosen');
 
 function renderOptions(options) {
+  // Make sure first option isn't auto selected
+  options.unshift({
+    id: '',
+    value: ''
+  });
+
   return options.map((option, i) => {
     return (
         <option value={ option.id } key={ i }>{ option.name }</option>

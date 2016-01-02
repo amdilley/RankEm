@@ -88,14 +88,25 @@ app.post('/db/update-category', function (req, res) {
   var categoryId = req.body.categoryId;
   var categoryName = req.body.categoryName;
   var childCategories = req.body.childCategories;
-  var pathRoot = req.body.pathRoot;
+  var newOptions = req.body.newOptions;
   var addedCategories = req.body.addedCategories;
   var removedCategories = req.body.removedCategories;
+  var isParentCategory = req.body.isParentCategory;
 
-  db.editCategory(categoryId, categoryName, childCategories, pathRoot, addedCategories, removedCategories, function () {
-    res.json({
-      result: 'category updated'
-    });
+  db.updateCategoryName(categoryId, categoryName, function () {
+    if (isParentCategory === 'true') {
+      db.editCategoryChildren(categoryId, childCategories, addedCategories, removedCategories, function () {
+        res.json({
+          result: 'category updated'
+        });
+      });
+    } else {
+      db.modifyOptions(categoryId, newOptions, removedCategories, function () {
+        res.json({
+          result: 'Category options modified'
+        });
+      });
+    }
   });
 });
 
@@ -162,24 +173,6 @@ app.post('/db/category/update', function (req, res) {
   db.editCategory(req.body.categoryId, req.body.name, req.body.children, function () {
     res.json({
       result: 'category updated'
-    });
-  });
-});
-
-// create new category option
-app.post('/db/option', function (req, res) {
-  db.addCategoryOption(req.body.categoryId, req.body.name, function () {
-    res.json({
-      result: 'category option added'
-    });
-  });
-});
-
-// remove category option
-app.post('/db/option', function (req, res) {
-  db.removeCategoryOption(req.body.optionId, function () {
-    res.json({
-      result: 'category option removed'
     });
   });
 });
